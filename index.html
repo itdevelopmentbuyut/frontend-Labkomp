@@ -127,32 +127,46 @@
 
   <main class="main-content w-100 no-sidebar" id="mainContent">
     
-    <!-- Login View -->
+    <!-- Login View (Sesuai Gambar 13) -->
     <div id="loginView" class="login-wrapper">
       <div class="login-card p-4 p-md-5">
         <div class="text-center mb-4">
-          <div class="login-brand-icon mb-3"><i class="fa-solid fa-laptop-code fs-2"></i></div>
+          <div class="login-brand-icon mb-3">
+            <i class="fa-solid fa-laptop-code fs-2"></i>
+          </div>
           <h3 class="fw-bold text-dark mb-1">E-Labkomp</h3>
           <p class="text-muted small">Sistem Informasi Inventaris & Peminjaman Lab</p>
         </div>
+
         <form id="formLogin" onsubmit="handleLoginSubmit(event)">
           <div class="mb-3">
             <label class="form-label fw-semibold text-dark small">Username</label>
             <div class="input-group">
               <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
-              <input type="text" id="loginUsername" class="form-control bg-light border-start-0" required>
+              <input type="text" id="loginUsername" class="form-control bg-light border-start-0" placeholder="Masukkan username" required>
             </div>
           </div>
+
           <div class="mb-3">
             <label class="form-label fw-semibold text-dark small">Password</label>
             <div class="input-group">
               <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
-              <input type="password" id="loginPassword" class="form-control bg-light border-start-0 border-end-0" required>
-              <button class="btn btn-light border border-start-0 text-muted" type="button" onclick="togglePasswordVisibility()"><i class="fa-solid fa-eye" id="togglePasswordIcon"></i></button>
+              <input type="password" id="loginPassword" class="form-control bg-light border-start-0 border-end-0" placeholder="Masukkan password" required>
+              <button class="btn btn-light border border-start-0 text-muted" type="button" id="togglePasswordBtn" onclick="togglePasswordVisibility()">
+                <i class="fa-solid fa-eye" id="togglePasswordIcon"></i>
+              </button>
             </div>
           </div>
-          <button type="submit" id="btnLoginSubmit" class="btn btn-primary w-100 py-2.5 fw-bold action-btn shadow-sm"><i class="fa-solid fa-right-to-bracket me-2"></i> Masuk Sistem</button>
+
+          <button type="submit" id="btnLoginSubmit" class="btn btn-primary w-100 py-2.5 fw-bold action-btn shadow-sm">
+            <i class="fa-solid fa-right-to-bracket me-2"></i> Masuk Sistem
+          </button>
         </form>
+
+        <div class="mt-4 pt-3 border-top text-center text-muted small" style="font-size:11px;">
+          <span>E-Labkomp V6.0 &bull; Lab Computer Management System</span><br>
+          <span>Dibuat dengan penuh ❤️ oleh IT Development Labkom</span>
+        </div>
       </div>
     </div>
 
@@ -391,7 +405,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 1. SUPABASE INIT (GUNAKAN NAMA VARIABEL BERBEDA AGAR TIDAK REDECLARATION ERROR)
+  // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -426,15 +440,16 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
+  // DISESUAIKAN DENGAN KOLOM KAPITAL DI SUPABASE: Username, Password, Role, Nama, LabKode
   async function handleLoginSubmit(event) {
     event.preventDefault(); startLoading();
     const u = document.getElementById('loginUsername').value.trim();
     const p = document.getElementById('loginPassword').value.trim();
     try {
-      const { data, error } = await supabaseClient.from('Users').select('*').eq('username', u).eq('password', p).single();
+      const { data, error } = await supabaseClient.from('Users').select('*').eq('Username', u).eq('Password', p).single();
       endLoading();
       if (error || !data) return Swal.fire('Gagal', 'Username/Password salah', 'error');
-      localStorage.setItem('elabkomp_user', JSON.stringify({ username: data.username, nama: data.nama, role: data.role, LabKode: data.LabKode }));
+      localStorage.setItem('elabkomp_user', JSON.stringify({ username: data.Username, nama: data.Nama, role: data.Role, LabKode: data.LabKode }));
       checkLoginState();
     } catch(err) { endLoading(); Swal.fire('Error', err.message, 'error'); }
   }
@@ -502,7 +517,7 @@
       dbData.aset = rAset.data || [];
       dbData.peminjaman = rPinjam.data || [];
       dbData.peminjamanLab = rLab.data || [];
-      dbData.adminLab = (rUsers.data || []).filter(u => u.role === 'Admin Lab');
+      dbData.adminLab = (rUsers.data || []).filter(u => u.Role === 'Admin Lab');
       if(rConfig.data) dbData.pengaturan = rConfig.data;
       renderAllViews();
     } catch(e) { Swal.fire('Error Load', e.message, 'error'); }
@@ -668,14 +683,14 @@
 
   function renderAdminManagement() {
     const t = document.getElementById('adminLabTableBody'); t.innerHTML=''; if(!dbData.adminLab.length) return t.innerHTML='<tr><td colspan="4" class="text-center">Kosong</td></tr>';
-    t.innerHTML = dbData.adminLab.map(i => `<tr><td><b>${i.nama}</b><br><small>${i.username}</small></td><td>${i.LabKode}</td><td>${i.WhatsApp||'-'}</td><td><button class="btn btn-sm btn-outline-danger" onclick="deleteAdminLab('${i.username}')">Hapus</button></td></tr>`).join('');
+    t.innerHTML = dbData.adminLab.map(i => `<tr><td><b>${i.Nama}</b><br><small>${i.Username}</small></td><td>${i.LabKode}</td><td>${i.WhatsApp||'-'}</td><td><button class="btn btn-sm btn-outline-danger" onclick="deleteAdminLab('${i.Username}')">Hapus</button></td></tr>`).join('');
   }
   async function handleAdminSubmit(e) {
     e.preventDefault(); startLoading();
-    const py = { username:document.getElementById('adminUsername').value, password:document.getElementById('adminPassword').value, nama:document.getElementById('adminNama').value, role:'Admin Lab', LabKode:document.getElementById('adminLabKode').value, WhatsApp:document.getElementById('adminWhatsApp').value };
+    const py = { Username:document.getElementById('adminUsername').value, Password:document.getElementById('adminPassword').value, Nama:document.getElementById('adminNama').value, Role:'Admin Lab', LabKode:document.getElementById('adminLabKode').value, WhatsApp:document.getElementById('adminWhatsApp').value };
     try { await supabaseClient.from('Users').insert([py]); document.getElementById('formAdminLab').reset(); loadData(); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
   }
-  async function deleteAdminLab(u) { const res=await Swal.fire({title:'Hapus Admin?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Users').delete().eq('username',u); loadData(); } }
+  async function deleteAdminLab(u) { const res=await Swal.fire({title:'Hapus Admin?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Users').delete().eq('Username',u); loadData(); } }
   
   function populateBarcodeSelects() {
     const sc = document.getElementById('selectAsetBarcode'); sc.innerHTML = ''; dbData.aset.forEach(a => sc.innerHTML += `<option value="${a.KodeAset}">${a.KodeAset}</option>`);
