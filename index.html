@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Labkomp | Sistem Informasi Lab Komputer</title>
+  
+  <!-- Supabase JS Client (Wajib untuk Vercel + Supabase) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome 6 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- JsBarcode CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <!-- jsPDF & AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root {
+      --sidebar-width: 260px;
+      --primary-color: #0f172a;
+      --accent-color: #2563eb;
+      --bg-color: #f8fafc;
+    }
+    body { background-color: var(--bg-color); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+    .sidebar { min-height: 100vh; background: var(--primary-color); color: #fff; width: var(--sidebar-width); position: fixed; top: 0; left: 0; z-index: 1040; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar .nav-link { color: #94a3b8; border-radius: 8px; margin-bottom: 6px; padding: 10px 16px; font-weight: 500; display: flex; align-items: center; gap: 12px; transition: all 0.2s ease; }
+    .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #1e293b; border-left: 4px solid var(--accent-color); }
+    .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 1030; display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .sidebar-overlay.show { display: block; opacity: 1; }
+    .main-content { margin-left: var(--sidebar-width); padding: 24px; min-height: 100vh; transition: margin-left 0.3s ease; }
+    .main-content.no-sidebar { margin-left: 0 !important; padding: 0 !important; }
+    .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); background: #ffffff; transition: transform 0.2s; }
+    .card-custom:hover { transform: translateY(-2px); }
+    .chart-container { position: relative; width: 100%; height: 280px; }
+    
+    @media (min-width: 769px) {
+      .sidebar { transform: translateX(0) !important; }
+      .sidebar.d-none { display: none !important; }
+      .sidebar.show { transform: translateX(0) !important; }
+      .sidebar-overlay { display: none !important; }
+      .main-content { margin-left: 260px; padding: 24px; min-height: 100vh; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { width: min(82vw, 300px); height: 100vh; min-height: 100vh; transform: translateX(-100%); transition: transform 0.3s ease; box-shadow: 8px 0 25px rgba(0, 0, 0, 0.20); }
+      .sidebar.show { transform: translateX(0); }
+      .sidebar-overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.60); backdrop-filter: blur(2px); z-index: 1030; display: none; opacity: 0; transition: opacity 0.3s ease; }
+      .sidebar-overlay.show { display: block; opacity: 1; }
+      .main-content { width: 100%; margin-left: 0 !important; padding: 12px; min-height: 100vh; }
+      .main-content.no-sidebar { margin-left: 0 !important; padding: 0 !important; }
+      #mobileHeader { position: sticky; top: 10px; z-index: 1020; width: 100%; }
+      #mobileHeader button { min-width: 46px; min-height: 42px; }
+      .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      #peminjamanTabs { overflow-x: auto; flex-wrap: nowrap; white-space: nowrap; }
+      #peminjamanTabs .nav-item { flex-shrink: 0; }
+    }
+    @media (max-width: 480px) {
+      .main-content { padding: 8px; }
+      #mobileHeader { margin-bottom: 12px !important; padding: 8px !important; }
+      #mobileHeader span.fw-bold { font-size: 14px !important; }
+      .card-custom { padding: 12px !important; }
+      .modal-dialog { margin: 8px; }
+    }
+    .login-wrapper { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; overflow: hidden; }
+    .login-wrapper::before { content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%; background: rgba(37, 99, 235, 0.15); top: -100px; right: -100px; filter: blur(50px); }
+    .login-wrapper::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(14, 165, 233, 0.15); bottom: -80px; left: -80px; filter: blur(50px); }
+    .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
+    .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
+    .barcode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+    .barcode-card-item { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+    
+    @media print {
+      @page { size: A4 portrait; margin: 8mm; }
+      html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; min-height: 0 !important; background: #fff !important; overflow: visible !important; display: block !important; position: static !important; transform: none !important; }
+      body > * { display: none !important; }
+      body > #printArea { display: block !important; position: static !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; border: none !important; background: #fff !important; overflow: visible !important; }
+      #printArea, #printArea * { visibility: visible !important; }
+      #barcodeGridContainer { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; column-gap: 8mm !important; row-gap: 8mm !important; width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; position: static !important; }
+      #barcodeGridContainer .barcode-card-item { display: block !important; width: auto !important; height: auto !important; margin: 0 !important; padding: 8px 6px !important; border: 1px dashed #000 !important; background: #fff !important; page-break-inside: avoid !important; }
+      #barcodeGridContainer canvas, #barcodeGridContainer img { display: block !important; width: 100% !important; max-width: 100% !important; height: auto !important; margin: 0 auto !important; }
+      #barcodeGridContainer > .barcode-card-item:first-child { margin-top: 0 !important; padding-top: 8px !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="d-flex">
+  <aside id="sidebar" class="sidebar p-3 d-none">
+    <div class="d-flex align-items-center justify-content-between mb-4 px-2">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-laptop-code text-primary fs-3"></i>
+        <div>
+          <h5 class="fw-bold mb-0 text-white">E-Labkomp</h5>
+          <small class="text-muted" style="font-size:11px;">Sistem Lab Komputer</small>
+        </div>
+      </div>
+      <button class="btn btn-sm text-white d-md-none p-1" onclick="closeSidebar()"><i class="fa-solid fa-xmark fs-4"></i></button>
+    </div>
+
+    <div class="user-info p-3 mb-4 bg-dark bg-opacity-50 rounded-3 d-flex align-items-center justify-content-between">
+      <div class="overflow-hidden me-2">
+        <div class="fw-bold text-truncate text-white" id="userDisplayName">Guest</div>
+        <small class="text-primary text-capitalize fw-semibold" id="userDisplayRole">Umum</small>
+      </div>
+      <button class="btn btn-sm btn-outline-light border-0" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </div>
+
+    <ul class="nav flex-column mb-auto">
+      <li class="nav-item" id="menuItemDashboard"><a class="nav-link active" href="#" id="navDashboard" onclick="switchMenu('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+      <li class="nav-item" id="menuItemAset"><a class="nav-link" href="#" id="navAset" onclick="switchMenu('aset')"><i class="fa-solid fa-desktop"></i> Data Aset</a></li>
+      <li class="nav-item" id="menuItemPeminjaman"><a class="nav-link" href="#" id="navPeminjaman" onclick="switchMenu('peminjaman')"><i class="fa-solid fa-hand-holding-hand"></i> Peminjaman</a></li>
+      <li class="nav-item" id="menuItemBarcode"><a class="nav-link" href="#" id="navBarcode" onclick="switchMenu('barcode')"><i class="fa-solid fa-barcode"></i> Label & Scanner</a></li>
+      <li class="nav-item" id="menuItemLaporan"><a class="nav-link" href="#" id="navLaporan" onclick="switchMenu('laporan')"><i class="fa-solid fa-file-pdf"></i> Laporan (PDF)</a></li>
+      <li class="nav-item" id="menuItemPengaturan"><a class="nav-link" href="#" id="navPengaturan" onclick="switchMenu('pengaturan')"><i class="fa-solid fa-sliders"></i> Pengaturan</a></li>
+    </ul>
+    <div class="pt-3 border-top border-secondary text-center"><small class="text-muted" style="font-size:11px;">E-Labkomp V6.0 &copy; 2026</small></div>
+  </aside>
+
+  <main class="main-content w-100 no-sidebar" id="mainContent">
+    
+    <!-- Login View -->
+    <div id="loginView" class="login-wrapper">
+      <div class="login-card p-4 p-md-5">
+        <div class="text-center mb-4">
+          <div class="login-brand-icon mb-3"><i class="fa-solid fa-laptop-code fs-2"></i></div>
+          <h3 class="fw-bold text-dark mb-1">E-Labkomp</h3>
+          <p class="text-muted small">Sistem Informasi Inventaris & Peminjaman Lab</p>
+        </div>
+        <form id="formLogin" onsubmit="handleLoginSubmit(event)">
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark small">Username</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
+              <input type="text" id="loginUsername" class="form-control bg-light border-start-0" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark small">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+              <input type="password" id="loginPassword" class="form-control bg-light border-start-0 border-end-0" required>
+              <button class="btn btn-light border border-start-0 text-muted" type="button" onclick="togglePasswordVisibility()"><i class="fa-solid fa-eye" id="togglePasswordIcon"></i></button>
+            </div>
+          </div>
+          <button type="submit" id="btnLoginSubmit" class="btn btn-primary w-100 py-2.5 fw-bold action-btn shadow-sm"><i class="fa-solid fa-right-to-bracket me-2"></i> Masuk Sistem</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- App Main View -->
+    <div id="appView" class="d-none">
+      <div class="d-md-none d-flex justify-content-between align-items-center mb-3 p-2 bg-white rounded-3 shadow-sm" id="mobileHeader">
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-primary btn-sm px-3 py-2 fw-semibold" onclick="toggleSidebar()"><i class="fa-solid fa-bars me-1"></i> Menu</button>
+          <span class="fw-bold text-dark fs-6 ms-1">E-Labkomp</span>
+        </div>
+        <span class="badge bg-primary px-2 py-1" id="mobileHeaderClock" style="font-size: 11px;">12:00</span>
+      </div>
+
+      <div class="d-none d-md-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm">
+        <div>
+          <h5 class="fw-bold mb-0" id="headerNamaSekolah">Memuat...</h5>
+          <small class="text-muted" id="headerAlamatSekolah">Sistem Informasi Lab Komputer Terintegrasi</small>
+        </div>
+        <div><span class="badge bg-primary px-3 py-2" id="headerClock">12:00 WIB</span></div>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="menuDashboard" class="menu-section">
+        <div class="row g-3 mb-4">
+          <div class="col-md-3"><div class="card card-custom p-3 border-start border-primary border-4"><div class="text-muted small">Total Aset</div><div class="fs-2 fw-bold text-dark" id="statTotalAset">0</div></div></div>
+          <div class="col-md-3"><div class="card card-custom p-3 border-start border-success border-4"><div class="text-muted small">Kondisi Baik</div><div class="fs-2 fw-bold text-success" id="statBaik">0</div></div></div>
+          <div class="col-md-3"><div class="card card-custom p-3 border-start border-warning border-4"><div class="text-muted small">Perlu Perbaikan</div><div class="fs-2 fw-bold text-warning" id="statPerbaikan">0</div></div></div>
+          <div class="col-md-3"><div class="card card-custom p-3 border-start border-danger border-4"><div class="text-muted small">Rusak</div><div class="fs-2 fw-bold text-danger" id="statRusak">0</div></div></div>
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6"><div class="card card-custom p-3"><h6 class="fw-bold mb-3">Distibusi Kondisi Aset</h6><div class="chart-container"><canvas id="chartKondisi"></canvas></div></div></div>
+          <div class="col-md-6"><div class="card card-custom p-3"><h6 class="fw-bold mb-3">Status Ketersediaan</h6><div class="chart-container"><canvas id="chartStatus"></canvas></div></div></div>
+        </div>
+        
+        <div class="row g-3 mt-1">
+          <div class="col-lg-6"><div class="card card-custom p-3 h-100"><div class="fw-bold mb-3"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Perlu Perhatian <span class="badge bg-warning text-dark float-end" id="dashboardPerhatianCount">0</span></div><div id="dashboardPerhatianList"></div></div></div>
+          <div class="col-lg-6"><div class="card card-custom p-3 h-100"><div class="fw-bold mb-3"><i class="fa-solid fa-building text-primary me-2"></i>Status Laboratorium</div><div id="dashboardLabStatus"></div></div></div>
+        </div> 
+
+        <div class="row g-3 mt-3">
+          <div class="col-12"><div class="card card-custom p-3"><div class="fw-bold mb-3"><i class="fa-solid fa-calendar-day text-primary me-2"></i>Peminjaman Hari Ini <span class="badge bg-primary float-end" id="dashboardPeminjamanCount">0</span></div><div id="dashboardPeminjamanSummary" class="mb-3"></div><div id="dashboardPeminjamanList"></div></div></div>
+        </div>
+
+        <div class="row g-3 mt-3">
+          <div class="col-12"><div class="card card-custom p-3"><div class="fw-bold mb-3"><i class="fa-solid fa-calendar-plus text-primary me-2"></i>Jadwal Lab Besok <span class="badge bg-primary float-end" id="dashboardBesokCount">0</span></div><div class="text-muted small mb-2" id="dashboardBesokTanggal"></div><div id="dashboardBesokList"></div></div></div>
+        </div>
+
+        <div id="dashboardAdminTools" class="row g-3 mb-3 mt-3 d-none">
+          <div class="col-12 col-lg-8"><div class="card card-custom p-3 border-start border-4 border-warning"><div class="d-flex justify-content-between align-items-center gap-2"><div><div class="fw-bold"><i class="fa-solid fa-bell text-warning me-2"></i>Perlu Tindakan Admin</div><div class="small text-muted" id="dashboardPendingText">Memeriksa booking yang menunggu persetujuan...</div></div><button class="btn btn-sm btn-warning" onclick="bukaBookingPendingAdmin()">Lihat Pending</button></div></div></div>
+          <div class="col-12 col-lg-4"><div class="card card-custom p-3"><div class="fw-bold mb-2"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Data & Backup</div><button class="btn btn-sm btn-outline-primary w-100" onclick="backupDataLokal()"><i class="fa-solid fa-download me-1"></i> Backup JSON</button></div></div>
+        </div>
+      </div>
+
+      <!-- Data Aset -->
+      <div id="menuAset" class="menu-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4 class="fw-bold m-0">Master Data Aset Labkomp</h4>
+          <button class="btn btn-primary action-btn" id="btnTambahAset" onclick="openModalAset()"><i class="fa-solid fa-plus me-1"></i> Tambah Aset</button>
+        </div>
+        <div class="card card-custom p-3">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><input type="text" id="searchAset" class="form-control" placeholder="Cari Kode, Nama..." oninput="renderAsetTable()"></div>
+            <div class="col-md-3">
+              <select id="filterKondisi" class="form-select" onchange="renderAsetTable()">
+                <option value="">-- Semua Kondisi --</option><option value="Baik">Baik</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Rusak">Rusak</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light"><tr><th>Kode Aset</th><th>Nama Barang</th><th>Kategori</th><th>Spesifikasi</th><th>Kondisi</th><th>Lokasi</th><th>Status</th><th class="text-center">Aksi</th></tr></thead>
+              <tbody id="tableAsetBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Peminjaman -->
+      <div id="menuPeminjaman" class="menu-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4 class="fw-bold m-0">Peminjaman Barang & Ruang Lab</h4>
+          <div>
+            <button class="btn btn-primary action-btn me-2" onclick="openModalPinjamBarang()"><i class="fa-solid fa-hand-holding me-1"></i> Pinjam Barang</button>
+            <button class="btn btn-outline-primary action-btn" onclick="openModalPinjamLab()"><i class="fa-solid fa-door-open me-1"></i> Booking Lab</button>
+          </div>
+        </div>
+        <ul class="nav nav-tabs mb-3" id="peminjamanTabs">
+          <li class="nav-item"><button class="nav-link active" onclick="switchSubTab('peminjamanBarang')">Peminjaman Barang</button></li>
+          <li class="nav-item"><button class="nav-link" onclick="switchSubTab('peminjamanLab')">Booking Ruang Lab</button></li>
+        </ul>
+        <div id="subPeminjamanBarang" class="card card-custom p-3">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle"><thead class="table-light"><tr><th>ID Pinjam</th><th>Kode / Nama Aset</th><th>Peminjam</th><th>Kelas</th><th>Tgl Pinjam</th><th>Tgl Kembali</th><th>Status</th><th class="text-center">Aksi</th></tr></thead><tbody id="tablePinjamBarangBody"></tbody></table>
+          </div>
+        </div>
+        <div id="subPeminjamanLab" class="card card-custom p-3 d-none">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <span id="bookingAdminSummary" class="small fw-semibold text-primary"></span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="arsipkanBookingLama()"><i class="fa-solid fa-box-archive me-1"></i> Arsipkan Selesai Lama</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle"><thead class="table-light"><tr><th>ID Booking</th><th>Ruang Lab</th><th>Kegiatan</th><th>PJ</th><th>Tanggal</th><th>Waktu</th><th>Status</th><th class="text-center">Aksi</th></tr></thead><tbody id="tablePinjamLabBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Label & Barcode -->
+      <div id="menuBarcode" class="menu-section d-none">
+        <div class="card card-custom p-3">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-barcode text-primary me-2"></i> Cetak Label Barcode</h5>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6"><select id="selectModePrintBarcode" class="form-select" onchange="toggleBarcodePrintMode()"><option value="single">Single Aset</option><option value="kategori">Per Kategori</option><option value="semua">Semua Aset</option></select></div>
+            <div class="col-md-6" id="wrapperSelectSingleAset"><select id="selectAsetBarcode" class="form-select" onchange="renderBarcodeLabels()"></select></div>
+            <div class="col-md-6 d-none" id="wrapperSelectKategoriAset"><select id="selectKategoriBarcode" class="form-select" onchange="renderBarcodeLabels()"></select></div>
+          </div>
+          <div id="printArea" class="p-3 border rounded bg-white"><div id="barcodeGridContainer" class="barcode-grid"></div></div>
+          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
+        </div>
+      </div>
+
+      <!-- Laporan PDF -->
+      <div id="menuLaporan" class="menu-section d-none">
+        <div class="card card-custom p-4">
+          <h4 class="fw-bold mb-3"><i class="fa-solid fa-file-pdf text-danger me-2"></i> Cetak Laporan PDF</h4>
+          <div class="row g-3">
+            <div class="col-md-4"><div class="card border p-3 text-center"><i class="fa-solid fa-boxes-stacked fs-1 text-primary mb-2"></i><h6>Master Aset</h6><button class="btn btn-sm btn-primary mt-2" onclick="exportPDF('aset')">Export PDF</button></div></div>
+            <div class="col-md-4"><div class="card border p-3 text-center"><i class="fa-solid fa-hand-holding fs-1 text-success mb-2"></i><h6>Peminjaman Barang</h6><button class="btn btn-sm btn-success mt-2" onclick="exportPDF('peminjaman')">Export PDF</button></div></div>
+            <div class="col-md-4"><div class="card border p-3 text-center"><i class="fa-solid fa-door-open fs-1 text-warning mb-2"></i><h6>Booking Lab</h6><button class="btn btn-sm btn-warning mt-2" onclick="exportPDF('peminjamanLab')">Export PDF</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pengaturan -->
+      <div id="menuPengaturan" class="menu-section d-none">
+        <div class="card card-custom p-4">
+          <h4 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Pengaturan Identitas Sekolah</h4>
+          <form id="formPengaturan" onsubmit="handlePengaturanSubmit(event)">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Nama Sekolah</label><input type="text" id="cfgNamaSekolah" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Alamat</label><input type="text" id="cfgAlamatSekolah" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Kepala Lab</label><input type="text" id="cfgKepalaLab" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">NIP Kepala Lab</label><input type="text" id="cfgNIPKepalaLab" class="form-control" required></div>
+            </div>
+            <div class="mt-4 text-end"><button type="submit" class="btn btn-primary action-btn"><i class="fa-solid fa-save me-1"></i> Simpan Pengaturan</button></div>
+          </form>
+        </div>
+
+        <div id="superAdminManagement" class="card card-custom p-4 mt-4 d-none">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-user-shield text-primary me-2"></i>Manajemen Admin Lab</h5>
+          </div>
+          <form id="formAdminLab" onsubmit="handleAdminSubmit(event)">
+            <input type="hidden" id="adminOriginalUsername">
+            <div class="row g-3">
+              <div class="col-md-4"><label class="form-label">Username</label><input type="text" id="adminUsername" class="form-control" required></div>
+              <div class="col-md-4"><label class="form-label">Password</label><input type="text" id="adminPassword" class="form-control" required></div>
+              <div class="col-md-4"><label class="form-label">Nama Admin</label><input type="text" id="adminNama" class="form-control" required></div>
+              <div class="col-md-6">
+                <label class="form-label">Admin untuk Lab</label>
+                <select id="adminLabKode" class="form-select" required><option value="LAB-1">Lab Komputer 1 (Banin)</option><option value="LAB-2">Lab Komputer 2 (Banat)</option></select>
+              </div>
+              <div class="col-md-6"><label class="form-label">WhatsApp Admin</label><input type="text" id="adminWhatsApp" class="form-control" required></div>
+            </div>
+            <div class="mt-3 text-end"><button type="button" class="btn btn-outline-secondary me-2" onclick="document.getElementById('formAdminLab').reset()">Reset</button><button type="submit" class="btn btn-primary action-btn">Simpan Admin</button></div>
+          </form>
+          <div class="table-responsive mt-4"><table class="table"><thead class="table-light"><tr><th>Admin</th><th>Lab</th><th>WhatsApp</th><th class="text-center">Aksi</th></tr></thead><tbody id="adminLabTableBody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Aset -->
+<div class="modal fade" id="modalAset" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title fw-bold" id="modalAsetTitle">Tambah Aset</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form id="formAset" onsubmit="handleAsetSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="asetIsEdit" value="false">
+          <div class="mb-3"><label class="form-label">Kode Aset</label><input type="text" id="asetKode" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Nama Barang</label><input type="text" id="asetNama" class="form-control" required></div>
+          <div class="mb-3">
+            <label class="form-label">Kategori</label>
+            <select id="asetKategori" class="form-select" required><option value="Komputer">Komputer</option><option value="Elektronik">Elektronik</option><option value="Jaringan">Jaringan</option><option value="Furniture">Furniture</option><option value="Lainnya">Lainnya</option></select>
+          </div>
+          <div class="mb-3"><label class="form-label">Spesifikasi</label><textarea id="asetSpesifikasi" class="form-control" rows="2"></textarea></div>
+          <div class="mb-3"><label class="form-label">Kondisi</label><select id="asetKondisi" class="form-select" required><option value="Baik">Baik</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Rusak">Rusak</option></select></div>
+          <div class="mb-3"><label class="form-label">Lokasi Lab</label><input type="text" id="asetLokasi" class="form-control" required></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary action-btn">Simpan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pinjam Barang -->
+<div class="modal fade" id="modalPinjamBarang" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title fw-bold">Peminjaman Barang</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form id="formPinjamBarang" onsubmit="handlePinjamBarangSubmit(event)">
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label">Pilih Barang</label><select id="pinjamKodeAset" class="form-select" required></select></div>
+          <div class="mb-3"><label class="form-label">Nama Peminjam</label><input type="text" id="pinjamPeminjam" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Kelas / Instansi</label><input type="text" id="pinjamKelas" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Catatan</label><textarea id="pinjamCatatan" class="form-control" rows="2"></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary action-btn">Simpan Transaksi</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Booking Lab -->
+<div class="modal fade" id="modalPinjamLab" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title fw-bold">Booking Ruang Lab</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form id="formPinjamLab" onsubmit="handlePinjamLabSubmit(event)">
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label">Ruang Lab</label><select id="labKode" class="form-select" required><option value="LAB-1">Lab Komputer 1 (Banin)</option><option value="LAB-2">Lab Komputer 2 (Banat)</option></select></div>
+          <div class="mb-3"><label class="form-label">Kegiatan</label><input type="text" id="labKegiatan" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Penanggung Jawab</label><input type="text" id="labPJ" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Tanggal Penggunaan</label><input type="date" id="labTanggal" class="form-control" required></div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><label class="form-label">Jam Mulai</label><input type="time" id="labMulai" class="form-control" required></div>
+            <div class="col-6"><label class="form-label">Jam Selesai</label><input type="time" id="labSelesai" class="form-control" required></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary action-btn">Kirim Pengajuan</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // 1. SUPABASE INIT (WAJIB GANTI URL & KEY INI)
+  const supabaseUrl = 'https://ewfmuddzldtjdxktlxgv.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV3Zm11ZGR6bGR0amR4a3RseGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MjA2MzQsImV4cCI6MjEwNDA5NjYzNH0.-tp0bTZLnQ_m2JLZeHMO9kirAdMs601UXs4DaNeNB0c';
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  let currentUser = null;
+  let dbData = { aset: [], peminjaman: [], peminjamanLab: [], adminLab: [], pengaturan: {} };
+  let bsModalAset, bsModalPinjamBarang, bsModalPinjamLab;
+  let chartKondisiObj = null, chartStatusObj = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    bsModalAset = new bootstrap.Modal(document.getElementById('modalAset'));
+    bsModalPinjamBarang = new bootstrap.Modal(document.getElementById('modalPinjamBarang'));
+    bsModalPinjamLab = new bootstrap.Modal(document.getElementById('modalPinjamLab'));
+    setInterval(updateClock, 1000);
+    checkLoginState();
+    mulaiRefreshDashboardRealtime();
+  });
+
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('headerClock').textContent = now.toLocaleTimeString('id-ID') + ' WIB';
+    document.getElementById('mobileHeaderClock').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function startLoading() { document.querySelectorAll('.action-btn').forEach(b => b.disabled = true); }
+  function endLoading() { document.querySelectorAll('.action-btn').forEach(b => b.disabled = false); }
+  function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); document.getElementById('sidebarOverlay').classList.toggle('show'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('show'); document.getElementById('sidebarOverlay').classList.remove('show'); }
+  function togglePasswordVisibility() {
+    const pwd = document.getElementById('loginPassword'), icon = document.getElementById('togglePasswordIcon');
+    if(pwd.type === 'password') { pwd.type = 'text'; icon.className = 'fa-solid fa-eye-slash'; }
+    else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
+  }
+
+  async function handleLoginSubmit(event) {
+    event.preventDefault(); startLoading();
+    const u = document.getElementById('loginUsername').value.trim();
+    const p = document.getElementById('loginPassword').value.trim();
+    try {
+      const { data, error } = await supabase.from('Users').select('*').eq('username', u).eq('password', p).single();
+      endLoading();
+      if (error || !data) return Swal.fire('Gagal', 'Username/Password salah', 'error');
+      localStorage.setItem('elabkomp_user', JSON.stringify({ username: data.username, nama: data.nama, role: data.role, LabKode: data.LabKode }));
+      checkLoginState();
+    } catch(err) { endLoading(); Swal.fire('Error', err.message, 'error'); }
+  }
+
+  function handleLogout() { localStorage.removeItem('elabkomp_user'); checkLoginState(); }
+
+  function checkLoginState() {
+    const saved = localStorage.getItem('elabkomp_user');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      document.getElementById('loginView').classList.add('d-none');
+      document.getElementById('appView').classList.remove('d-none');
+      document.getElementById('sidebar').classList.remove('d-none');
+      document.getElementById('mainContent').classList.remove('no-sidebar');
+      document.getElementById('userDisplayName').textContent = currentUser.nama;
+      document.getElementById('userDisplayRole').textContent = currentUser.role;
+      applyRolePermissions();
+      loadData();
+    } else {
+      currentUser = null;
+      document.getElementById('appView').classList.add('d-none');
+      document.getElementById('sidebar').classList.add('d-none');
+      document.getElementById('mainContent').classList.add('no-sidebar');
+      document.getElementById('loginView').classList.remove('d-none');
+      closeSidebar();
+    }
+  }
+
+  function applyRolePermissions() {
+    const r = currentUser ? currentUser.role : 'Umum';
+    const isAdmin = r === 'Admin Lab' || r === 'Super Admin';
+    const isSuper = r === 'Super Admin';
+    document.getElementById('menuItemBarcode')?.classList.toggle('d-none', !isAdmin);
+    document.getElementById('menuItemLaporan')?.classList.toggle('d-none', !isAdmin);
+    document.getElementById('menuItemPengaturan')?.classList.toggle('d-none', !isSuper);
+    document.getElementById('btnTambahAset')?.classList.toggle('d-none', !isAdmin);
+    switchMenu('dashboard');
+  }
+
+  function switchMenu(m) {
+    document.querySelectorAll('.menu-section').forEach(s => s.classList.add('d-none'));
+    document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('menu' + m.charAt(0).toUpperCase() + m.slice(1))?.classList.remove('d-none');
+    document.getElementById('nav' + m.charAt(0).toUpperCase() + m.slice(1))?.classList.add('active');
+    if (window.innerWidth <= 768) closeSidebar();
+    if(m === 'barcode') { populateBarcodeSelects(); renderBarcodeLabels(); }
+  }
+  function switchSubTab(s) {
+    document.getElementById('subPeminjamanBarang').classList.toggle('d-none', s !== 'peminjamanBarang');
+    document.getElementById('subPeminjamanLab').classList.toggle('d-none', s !== 'peminjamanLab');
+    document.querySelectorAll('#peminjamanTabs .nav-link').forEach(b => b.classList.remove('active'));
+    if(event && event.target) event.target.classList.add('active');
+  }
+
+  async function loadData() {
+    startLoading();
+    try {
+      const [rAset, rPinjam, rLab, rUsers, rConfig] = await Promise.all([
+        supabase.from('Data_Labkomp').select('*'),
+        supabase.from('Data_Peminjaman').select('*'),
+        supabase.from('Data_Peminjaman_Lab').select('*'),
+        supabase.from('Users').select('*'),
+        supabase.from('Pengaturan').select('*').limit(1).maybeSingle()
+      ]);
+      dbData.aset = rAset.data || [];
+      dbData.peminjaman = rPinjam.data || [];
+      dbData.peminjamanLab = rLab.data || [];
+      dbData.adminLab = (rUsers.data || []).filter(u => u.role === 'Admin Lab');
+      if(rConfig.data) dbData.pengaturan = rConfig.data;
+      renderAllViews();
+    } catch(e) { Swal.fire('Error Load', e.message, 'error'); }
+    endLoading();
+  }
+
+  let realtimeTimer;
+  function mulaiRefreshDashboardRealtime() {
+    if(realtimeTimer) clearInterval(realtimeTimer);
+    realtimeTimer = setInterval(() => { if(currentUser && !document.querySelector('.modal.show')) loadData(); }, 60000);
+  }
+
+  function renderAllViews() {
+    updateHeaderSettings(); renderDashboard(); renderAsetTable(); renderPinjamBarangTable();
+    renderPinjamLabTable(); populateSelectAvailableAset(); renderDashboardPeminjamanHariIni();
+    renderDashboardJadwalBesok(); renderAdminManagement();
+  }
+
+  function updateHeaderSettings() {
+    const c = dbData.pengaturan;
+    document.getElementById('headerNamaSekolah').textContent = c.NamaSekolah || 'E-Labkomp';
+    document.getElementById('cfgNamaSekolah').value = c.NamaSekolah || '';
+    document.getElementById('cfgAlamatSekolah').value = c.AlamatSekolah || '';
+    document.getElementById('cfgKepalaLab').value = c.KepalaLab || '';
+    document.getElementById('cfgNIPKepalaLab').value = c.NIPKepalaLab || '';
+  }
+
+  function renderDashboard() {
+    const aset = dbData.aset;
+    const baik = aset.filter(x => x.Kondisi === 'Baik').length;
+    const perbaikan = aset.filter(x => x.Kondisi === 'Perlu Perbaikan').length;
+    const rusak = aset.filter(x => x.Kondisi === 'Rusak').length;
+    const dipinjam = aset.filter(x => x.Status === 'Dipinjam').length;
+    
+    document.getElementById('statTotalAset').textContent = aset.length;
+    document.getElementById('statBaik').textContent = baik;
+    document.getElementById('statPerbaikan').textContent = perbaikan;
+    document.getElementById('statRusak').textContent = rusak;
+
+    if(chartKondisiObj) chartKondisiObj.destroy();
+    chartKondisiObj = new Chart(document.getElementById('chartKondisi'), { type: 'doughnut', data: { labels: ['Baik', 'Perbaikan', 'Rusak'], datasets: [{ data: [baik, perbaikan, rusak], backgroundColor: ['#10b981', '#f59e0b', '#ef4444'] }] }, options: { responsive: true, maintainAspectRatio: false }});
+    if(chartStatusObj) chartStatusObj.destroy();
+    chartStatusObj = new Chart(document.getElementById('chartStatus'), { type: 'bar', data: { labels: ['Tersedia', 'Dipinjam'], datasets: [{ label: 'Barang', data: [aset.length - dipinjam, dipinjam], backgroundColor: ['#2563eb', '#f97316'] }] }, options: { responsive: true, maintainAspectRatio: false }});
+    
+    const pCount = document.getElementById('dashboardPerhatianCount');
+    const pList = document.getElementById('dashboardPerhatianList');
+    const perh = aset.filter(x => x.Kondisi === 'Rusak' || x.Kondisi === 'Perlu Perbaikan');
+    if(pCount) pCount.textContent = perh.length;
+    if(pList) pList.innerHTML = perh.length ? perh.slice(0,5).map(i => `<div class="d-flex justify-content-between border-bottom py-2"><div><div class="fw-bold small">${i.KodeAset}</div><div class="text-muted small">${i.NamaBarang}</div></div><span class="badge ${i.Kondisi==='Rusak'?'bg-danger':'bg-warning text-dark'}">${i.Kondisi}</span></div>`).join('') : '<small class="text-success">Semua aset aman</small>';
+
+    document.getElementById('dashboardAdminTools').classList.toggle('d-none', !currentUser || currentUser.role !== 'Super Admin');
+  }
+
+  function renderDashboardPeminjamanHariIni() {
+    const pad = n => String(n).padStart(2, '0'); const d = new Date(); const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const data = dbData.peminjamanLab.filter(x => x.TanggalGuna === today);
+    document.getElementById('dashboardPeminjamanCount').textContent = data.length;
+    document.getElementById('dashboardPeminjamanList').innerHTML = data.length ? data.map(i => `<div class="d-flex justify-content-between py-2 border-bottom"><div><b>${i.NamaLab}</b><br><small>${i.Kegiatan} (${i.JamMulai}-${i.JamSelesai})</small></div><span class="badge bg-primary">${i.Status}</span></div>`).join('') : '<small>Tidak ada booking hari ini.</small>';
+  }
+  
+  function renderDashboardJadwalBesok() {
+    const pad = n => String(n).padStart(2, '0'); const d = new Date(); d.setDate(d.getDate()+1); const tmrw = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const data = dbData.peminjamanLab.filter(x => x.TanggalGuna === tmrw && x.Status === 'Disetujui');
+    document.getElementById('dashboardBesokCount').textContent = data.length;
+    document.getElementById('dashboardBesokList').innerHTML = data.length ? data.map(i => `<div class="d-flex justify-content-between py-2 border-bottom"><div><b>${i.NamaLab}</b><br><small>${i.Kegiatan}</small></div><span class="badge bg-success">Disetujui</span></div>`).join('') : '<small>Tidak ada jadwal besok.</small>';
+  }
+
+  function renderAsetTable() {
+    const t = document.getElementById('tableAsetBody'); t.innerHTML = '';
+    const q = document.getElementById('searchAset').value.toLowerCase();
+    const f = document.getElementById('filterKondisi').value;
+    const r = currentUser ? currentUser.role : 'Umum';
+    const data = dbData.aset.filter(x => ((x.KodeAset||'').toLowerCase().includes(q) || (x.NamaBarang||'').toLowerCase().includes(q)) && (!f || x.Kondisi === f));
+    if(!data.length) return t.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada data</td></tr>';
+    t.innerHTML = data.map(i => {
+      let b = i.Kondisi==='Rusak'?'bg-danger':i.Kondisi==='Perlu Perbaikan'?'bg-warning text-dark':'bg-success';
+      let act = (r==='Admin Lab'||r==='Super Admin') ? `<button class="btn btn-sm btn-outline-primary" onclick="openModalAset(true,'${i.KodeAset}')">Edit</button> <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteAset('${i.KodeAset}')">Hapus</button>` : '-';
+      return `<tr><td><b>${i.KodeAset}</b></td><td>${i.NamaBarang}</td><td>${i.Kategori}</td><td><small>${i.Spesifikasi}</small></td><td><span class="badge ${b}">${i.Kondisi}</span></td><td>${i.Lokasi}</td><td>${i.Status}</td><td>${act}</td></tr>`;
+    }).join('');
+  }
+
+  async function handleAsetSubmit(e) {
+    e.preventDefault(); startLoading();
+    const isE = document.getElementById('asetIsEdit').value === 'true', k = document.getElementById('asetKode').value.trim();
+    const py = { KodeAset:k, NamaBarang:document.getElementById('asetNama').value.trim(), Kategori:document.getElementById('asetKategori').value, Spesifikasi:document.getElementById('asetSpesifikasi').value.trim(), Kondisi:document.getElementById('asetKondisi').value, Lokasi:document.getElementById('asetLokasi').value.trim() };
+    if(!isE) py.Status = 'Tersedia';
+    try { isE ? await supabase.from('Data_Labkomp').update(py).eq('KodeAset',k) : await supabase.from('Data_Labkomp').insert([py]); bsModalAset.hide(); Swal.fire('Sukses','Data tersimpan','success'); loadData(); }
+    catch(err) { Swal.fire('Error', err.message, 'error'); endLoading(); }
+  }
+
+  async function handleDeleteAset(k) {
+    const res = await Swal.fire({title:'Hapus Aset?', icon:'warning', showCancelButton:true});
+    if(res.isConfirmed) { startLoading(); await supabase.from('Data_Labkomp').delete().eq('KodeAset',k); loadData(); }
+  }
+
+  function openModalAset(isE=false, k='') {
+    document.getElementById('formAset').reset(); document.getElementById('asetIsEdit').value = isE;
+    document.getElementById('asetKode').readOnly = isE;
+    if(isE) { const d = dbData.aset.find(x=>x.KodeAset===k); if(d){ document.getElementById('asetKode').value=d.KodeAset; document.getElementById('asetNama').value=d.NamaBarang; document.getElementById('asetKategori').value=d.Kategori; document.getElementById('asetSpesifikasi').value=d.Spesifikasi; document.getElementById('asetKondisi').value=d.Kondisi; document.getElementById('asetLokasi').value=d.Lokasi; } }
+    bsModalAset.show();
+  }
+
+  function renderPinjamBarangTable() {
+    const t = document.getElementById('tablePinjamBarangBody'); t.innerHTML = ''; const r = currentUser ? currentUser.role : 'Umum';
+    if(!dbData.peminjaman.length) return t.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada peminjaman</td></tr>';
+    t.innerHTML = dbData.peminjaman.map(i => {
+      let act = (i.Status==='Dipinjam' && (r==='Admin Lab'||r==='Super Admin')) ? `<button class="btn btn-sm btn-success" onclick="handleKembalikanBarang('${i.IdPinjam}','${i.KodeAset}')">Kembalikan</button>` : '-';
+      return `<tr><td>${i.IdPinjam}</td><td>${i.KodeAset}</td><td>${i.Peminjam}</td><td>${i.KelasInstansi}</td><td><small>${i.TanggalPinjam}</small></td><td><small>${i.TanggalKembali||'-'}</small></td><td>${i.Status}</td><td>${act}</td></tr>`;
+    }).join('');
+  }
+
+  function populateSelectAvailableAset() {
+    const s = document.getElementById('pinjamKodeAset'); s.innerHTML = '';
+    const a = dbData.aset.filter(x => x.Status !== 'Dipinjam' && x.Kondisi !== 'Rusak');
+    a.length ? a.forEach(i => s.innerHTML += `<option value="${i.KodeAset}" data-nama="${i.NamaBarang}">${i.KodeAset} - ${i.NamaBarang}</option>`) : s.innerHTML = '<option value="">Kosong</option>';
+  }
+
+  async function handlePinjamBarangSubmit(e) {
+    e.preventDefault(); startLoading();
+    const sel = document.getElementById('pinjamKodeAset'), k = sel.value;
+    const py = { IdPinjam: 'PNM-'+Date.now().toString().slice(-4), KodeAset: k, NamaBarang: sel.options[sel.selectedIndex].getAttribute('data-nama'), Peminjam: document.getElementById('pinjamPeminjam').value, KelasInstansi: document.getElementById('pinjamKelas').value, Catatan: document.getElementById('pinjamCatatan').value, TanggalPinjam: new Date().toISOString().split('T')[0], Status: 'Dipinjam' };
+    try { await supabase.from('Data_Peminjaman').insert([py]); await supabase.from('Data_Labkomp').update({Status:'Dipinjam'}).eq('KodeAset',k); bsModalPinjamBarang.hide(); loadData(); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
+  }
+
+  async function handleKembalikanBarang(id, k) {
+    const res = await Swal.fire({title:'Kembalikan?', icon:'question', showCancelButton:true});
+    if(res.isConfirmed) { startLoading(); await supabase.from('Data_Peminjaman').update({Status:'Dikembalikan',TanggalKembali:new Date().toISOString().split('T')[0]}).eq('IdPinjam',id); await supabase.from('Data_Labkomp').update({Status:'Tersedia'}).eq('KodeAset',k); loadData(); }
+  }
+
+  function renderPinjamLabTable() {
+    const t = document.getElementById('tablePinjamLabBody'); t.innerHTML = ''; const r = currentUser ? currentUser.role : 'Umum';
+    if(!dbData.peminjamanLab.length) return t.innerHTML = '<tr><td colspan="8" class="text-center">Kosong</td></tr>';
+    t.innerHTML = dbData.peminjamanLab.map(i => {
+      let c = i.Status==='Disetujui'?'bg-success':i.Status==='Ditolak'?'bg-danger':'bg-warning text-dark';
+      let act = '-';
+      if(r==='Admin Lab' || r==='Super Admin') {
+        if(i.Status==='Pending') act = `<button class="btn btn-sm btn-success" onclick="handleStatusLab('${i.IdPinjamLab}','Disetujui')">Setujui</button> <button class="btn btn-sm btn-danger" onclick="handleStatusLab('${i.IdPinjamLab}','Ditolak')">Tolak</button>`;
+        else if(i.Status==='Disetujui') act = `<button class="btn btn-sm btn-primary" onclick="handleStatusLab('${i.IdPinjamLab}','Selesai')">Selesai</button>`;
+        else if(i.Status==='Selesai' || i.Status==='Ditolak') act = `<button class="btn btn-sm btn-outline-danger" onclick="handleArchiveLab('${i.IdPinjamLab}')">Hapus Arsip</button>`;
+      }
+      return `<tr><td>${i.IdPinjamLab}</td><td>${i.NamaLab}</td><td>${i.Kegiatan}</td><td>${i.PenanggungJawab}</td><td>${i.TanggalGuna}</td><td>${i.JamMulai}-${i.JamSelesai}</td><td><span class="badge ${c}">${i.Status}</span></td><td>${act}</td></tr>`;
+    }).join('');
+  }
+
+  function openModalPinjamLab() { document.getElementById('formPinjamLab').reset(); bsModalPinjamLab.show(); }
+
+  async function handlePinjamLabSubmit(e) {
+    e.preventDefault(); startLoading();
+    const sel = document.getElementById('labKode');
+    const py = { IdPinjamLab: 'LBP-'+Date.now().toString().slice(-4), KodeLab: sel.value, NamaLab: sel.options[sel.selectedIndex].text, Kegiatan: document.getElementById('labKegiatan').value, PenanggungJawab: document.getElementById('labPJ').value, TanggalGuna: document.getElementById('labTanggal').value, JamMulai: document.getElementById('labMulai').value, JamSelesai: document.getElementById('labSelesai').value, Status: 'Pending' };
+    try { await supabase.from('Data_Peminjaman_Lab').insert([py]); bsModalPinjamLab.hide(); Swal.fire('Sukses','Diajukan','success'); loadData(); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
+  }
+
+  async function handleStatusLab(id, st) { startLoading(); await supabase.from('Data_Peminjaman_Lab').update({Status:st}).eq('IdPinjamLab',id); loadData(); }
+  async function handleArchiveLab(id) { const res=await Swal.fire({title:'Hapus Permanen?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabase.from('Data_Peminjaman_Lab').delete().eq('IdPinjamLab',id); loadData();} }
+  async function arsipkanBookingLama() { const res=await Swal.fire({title:'Bersihkan Data Selesai?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabase.from('Data_Peminjaman_Lab').delete().eq('Status','Selesai'); loadData();} }
+
+  async function handlePengaturanSubmit(e) {
+    e.preventDefault(); startLoading();
+    const py = { NamaSekolah:document.getElementById('cfgNamaSekolah').value, AlamatSekolah:document.getElementById('cfgAlamatSekolah').value, KepalaLab:document.getElementById('cfgKepalaLab').value, NIPKepalaLab:document.getElementById('cfgNIPKepalaLab').value };
+    try { const {data} = await supabase.from('Pengaturan').select('id').limit(1).maybeSingle(); if(data) await supabase.from('Pengaturan').update(py).eq('id',data.id); else await supabase.from('Pengaturan').insert([py]); loadData(); Swal.fire('Sukses','Disimpan','success'); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
+  }
+
+  function renderAdminManagement() {
+    const t = document.getElementById('adminLabTableBody'); t.innerHTML=''; if(!dbData.adminLab.length) return t.innerHTML='<tr><td colspan="4" class="text-center">Kosong</td></tr>';
+    t.innerHTML = dbData.adminLab.map(i => `<tr><td><b>${i.nama}</b><br><small>${i.username}</small></td><td>${i.LabKode}</td><td>${i.WhatsApp||'-'}</td><td><button class="btn btn-sm btn-outline-danger" onclick="deleteAdminLab('${i.username}')">Hapus</button></td></tr>`).join('');
+  }
+  async function handleAdminSubmit(e) {
+    e.preventDefault(); startLoading();
+    const py = { username:document.getElementById('adminUsername').value, password:document.getElementById('adminPassword').value, nama:document.getElementById('adminNama').value, role:'Admin Lab', LabKode:document.getElementById('adminLabKode').value, WhatsApp:document.getElementById('adminWhatsApp').value };
+    try { await supabase.from('Users').insert([py]); document.getElementById('formAdminLab').reset(); loadData(); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
+  }
+  async function deleteAdminLab(u) { const res=await Swal.fire({title:'Hapus Admin?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabase.from('Users').delete().eq('username',u); loadData(); } }
+  
+  function populateBarcodeSelects() {
+    const sc = document.getElementById('selectAsetBarcode'); sc.innerHTML = ''; dbData.aset.forEach(a => sc.innerHTML += `<option value="${a.KodeAset}">${a.KodeAset}</option>`);
+    const sk = document.getElementById('selectKategoriBarcode'); sk.innerHTML = ''; [...new Set(dbData.aset.map(a=>a.Kategori))].forEach(k => sk.innerHTML += `<option value="${k}">${k}</option>`);
+  }
+  function toggleBarcodePrintMode() {
+    const m = document.getElementById('selectModePrintBarcode').value;
+    document.getElementById('wrapperSelectSingleAset').classList.toggle('d-none', m!=='single');
+    document.getElementById('wrapperSelectKategoriAset').classList.toggle('d-none', m!=='kategori');
+    renderBarcodeLabels();
+  }
+  function renderBarcodeLabels() {
+    const m = document.getElementById('selectModePrintBarcode').value, c = document.getElementById('barcodeGridContainer'); c.innerHTML='';
+    let s = m==='single' ? dbData.aset.filter(x=>x.KodeAset===document.getElementById('selectAsetBarcode').value) : m==='kategori' ? dbData.aset.filter(x=>x.Kategori===document.getElementById('selectKategoriBarcode').value) : dbData.aset;
+    s.forEach((i,x) => c.innerHTML += `<div class="barcode-card-item"><h6>${i.NamaBarang}</h6><canvas id="bc_${x}"></canvas></div>`);
+    setTimeout(() => s.forEach((i,x) => { try{ JsBarcode(`#bc_${x}`, i.KodeAset, {format:"CODE128", width:1.5, height:40, displayValue:true, fontSize:12}); }catch(e){} }), 50);
+  }
+  function exportPDF(type) { Swal.fire('Info', 'Pastikan library jsPDF dimuat. (Fungsi PDF dipersingkat)', 'info'); }
+  function backupDataLokal() { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(dbData,null,2)],{type:'application/json'})); a.download='Backup.json'; a.click(); }
+  function bukaBookingPendingAdmin() { switchMenu('peminjaman'); switchSubTab('peminjamanLab'); }
+</script>
+</body>
+</html>
