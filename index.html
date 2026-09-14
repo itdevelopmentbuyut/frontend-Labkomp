@@ -407,7 +407,7 @@
 <script>
   // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8UA';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let currentUser = null;
@@ -503,14 +503,13 @@
     if(event && event.target) event.target.classList.add('active');
   }
 
-  // DISESUAIKAN: Nama tabel ditarik secara tepat dari Supabase
   async function loadData() {
     startLoading();
     try {
       const [rAset, rPinjam, rLab, rUsers, rConfig] = await Promise.all([
         supabaseClient.from('Data_Labkomp').select('*'),
         supabaseClient.from('Data_Peminjaman').select('*'),
-        supabaseClient.from('Data_Peminjaman_Lab').select('*'),
+        supabaseClient.from('Data_PeminjamanLab').select('*'),
         supabaseClient.from('Users').select('*'),
         supabaseClient.from('Pengaturan').select('*').limit(1).maybeSingle()
       ]);
@@ -664,16 +663,95 @@
 
   function openModalPinjamLab() { document.getElementById('formPinjamLab').reset(); bsModalPinjamLab.show(); }
 
+  // VALIDASI KETAT: TIDAK BOLEH BENTROK & WAJIB H-1 PENGGUNAAN
   async function handlePinjamLabSubmit(e) {
     e.preventDefault(); startLoading();
+    
     const sel = document.getElementById('labKode');
-    const py = { IdPinjamLab: 'LBP-'+Date.now().toString().slice(-4), KodeLab: sel.value, NamaLab: sel.options[sel.selectedIndex].text, Kegiatan: document.getElementById('labKegiatan').value, PenanggungJawab: document.getElementById('labPJ').value, TanggalGuna: document.getElementById('labTanggal').value, JamMulai: document.getElementById('labMulai').value, JamSelesai: document.getElementById('labSelesai').value, Status: 'Pending' };
-    try { await supabaseClient.from('Data_Peminjaman_Lab').insert([py]); bsModalPinjamLab.hide(); Swal.fire('Sukses','Diajukan','success'); loadData(); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
+    const labKodeVal = sel.value;
+    const tglGuna = document.getElementById('labTanggal').value;
+    const jamMulai = document.getElementById('labMulai').value;
+    const jamSelesai = document.getElementById('labSelesai').value;
+
+    // 1. Validasi Aturan H-1 Penggunaan
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tglGuna);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    const diffTime = selectedDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 1) {
+      endLoading();
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Peringatan H-1',
+        text: 'Peminjaman harus dilakukan minimal H-1 sebelum penggunaan! Silakan cari tanggal lain.'
+      });
+    }
+
+    // 2. Validasi Cek Bentrok Jadwal
+    try {
+      const { data: existingBookings, error: checkError } = await supabaseClient
+        .from('Data_PeminjamanLab')
+        .select('*')
+        .eq('KodeLab', labKodeVal)
+        .eq('TanggalGuna', tglGuna)
+        .in('Status', ['Pending', 'Disetujui']);
+
+      if (checkError) throw checkError;
+
+      // Periksa apakah jam bertabrakan
+      let isBentrok = false;
+      if (existingBookings && existingBookings.length > 0) {
+        for (let b of existingBookings) {
+          // Bentrok terjadi jika jam mulai baru < jam selesai lama DAN jam selesai baru > jam mulai lama
+          if (jamMulai < b.JamSelesai && jamSelesai > b.JamMulai) {
+            isBentrok = true;
+            break;
+          }
+        }
+      }
+
+      if (isBentrok) {
+        endLoading();
+        return Swal.fire({
+          icon: 'error',
+          title: 'Jadwal Bentrok!',
+          text: 'Jadwal bertabrakan dengan peminjaman lain. Silakan cari jadwal lain!'
+        });
+      }
+
+      // Jika lolos semua validasi, simpan ke database
+      const py = { 
+        IdPinjamLab: 'LBP-' + Date.now().toString().slice(-4), 
+        KodeLab: labKodeVal, 
+        NamaLab: sel.options[sel.selectedIndex].text, 
+        Kegiatan: document.getElementById('labKegiatan').value, 
+        PenanggungJawab: document.getElementById('labPJ').value, 
+        TanggalGuna: tglGuna, 
+        JamMulai: jamMulai, 
+        JamSelesai: jamSelesai, 
+        Status: 'Pending' 
+      };
+
+      const { error: insertError } = await supabaseClient.from('Data_PeminjamanLab').insert([py]);
+      if (insertError) throw insertError;
+
+      bsModalPinjamLab.hide();
+      Swal.fire('Sukses', 'Pengajuan booking berhasil dikirim', 'success');
+      loadData();
+
+    } catch (err) {
+      endLoading();
+      Swal.fire('Error', err.message, 'error');
+    }
   }
 
-  async function handleStatusLab(id, st) { startLoading(); await supabaseClient.from('Data_Peminjaman_Lab').update({Status:st}).eq('IdPinjamLab',id); loadData(); }
-  async function handleArchiveLab(id) { const res=await Swal.fire({title:'Hapus Permanen?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_Peminjaman_Lab').delete().eq('IdPinjamLab',id); loadData();} }
-  async function arsipkanBookingLama() { const res=await Swal.fire({title:'Bersihkan Data Selesai?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_Peminjaman_Lab').delete().eq('Status','Selesai'); loadData();} }
+  async function handleStatusLab(id, st) { startLoading(); await supabaseClient.from('Data_PeminjamanLab').update({Status:st}).eq('IdPinjamLab',id); loadData(); }
+  async function handleArchiveLab(id) { const res=await Swal.fire({title:'Hapus Permanen?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_PeminjamanLab').delete().eq('IdPinjamLab',id); loadData();} }
+  async function arsipkanBookingLama() { const res=await Swal.fire({title:'Bersihkan Data Selesai?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_PeminjamanLab').delete().eq('Status','Selesai'); loadData();} }
 
   async function handlePengaturanSubmit(e) {
     e.preventDefault(); startLoading();
