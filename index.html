@@ -440,18 +440,23 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
-  // LOGIN STABIL SESUAI KOLOM SUPABASE KAPITAL
+  // FUNGSI LOGIN ASLI YANG STABIL (MENGGUNAKAN .maybeSingle() AGAR TIDAK ERROR JIKA DATA KOSONG/BANYAK)
   async function handleLoginSubmit(event) {
     event.preventDefault(); startLoading();
     const u = document.getElementById('loginUsername').value.trim();
     const p = document.getElementById('loginPassword').value.trim();
     try {
-      const { data, error } = await supabaseClient.from('Users').select('*').eq('Username', u).eq('Password', p).single();
+      const { data, error } = await supabaseClient.from('Users').select('*').eq('Username', u).eq('Password', p).maybeSingle();
       endLoading();
-      if (error || !data) return Swal.fire('Gagal', 'Username/Password salah', 'error');
-      localStorage.setItem('elabkomp_user', JSON.stringify({ username: data.Username, nama: data.Nama, role: data.Role, LabKode: data.LabKode }));
+      if (error || !data) return Swal.fire('Gagal', 'Username atau Password salah', 'error');
+      
+      currentUser = { username: data.Username, nama: data.Nama, role: data.Role, LabKode: data.LabKode };
+      localStorage.setItem('elabkomp_user', JSON.stringify(currentUser));
       checkLoginState();
-    } catch(err) { endLoading(); Swal.fire('Error', err.message, 'error'); }
+    } catch(err) { 
+      endLoading(); 
+      Swal.fire('Error', err.message, 'error'); 
+    }
   }
 
   function handleLogout() { localStorage.removeItem('elabkomp_user'); checkLoginState(); }
