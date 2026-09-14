@@ -407,7 +407,7 @@
 <script>
   // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8UA';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let currentUser = null;
@@ -440,6 +440,7 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
+  // LOGIN STABIL SESUAI KOLOM SUPABASE KAPITAL
   async function handleLoginSubmit(event) {
     event.preventDefault(); startLoading();
     const u = document.getElementById('loginUsername').value.trim();
@@ -663,7 +664,7 @@
 
   function openModalPinjamLab() { document.getElementById('formPinjamLab').reset(); bsModalPinjamLab.show(); }
 
-  // VALIDASI KETAT: TIDAK BOLEH BENTROK & WAJIB H-1 PENGGUNAAN
+  // VALIDASI KETAT PEMINJAMAN LAB: TIDAK BENTROK & WAJIB H-1
   async function handlePinjamLabSubmit(e) {
     e.preventDefault(); startLoading();
     
@@ -702,11 +703,9 @@
 
       if (checkError) throw checkError;
 
-      // Periksa apakah jam bertabrakan
       let isBentrok = false;
       if (existingBookings && existingBookings.length > 0) {
         for (let b of existingBookings) {
-          // Bentrok terjadi jika jam mulai baru < jam selesai lama DAN jam selesai baru > jam mulai lama
           if (jamMulai < b.JamSelesai && jamSelesai > b.JamMulai) {
             isBentrok = true;
             break;
@@ -719,11 +718,11 @@
         return Swal.fire({
           icon: 'error',
           title: 'Jadwal Bentrok!',
-          text: 'Jadwal bertabrakan dengan peminjaman lain. Silakan cari jadwal lain!'
+          text: 'Jadwal bertabrakan dengan peminjaman lain. Silakan cari waktu atau lab lain!'
         });
       }
 
-      // Jika lolos semua validasi, simpan ke database
+      // Simpan jika lolos validasi
       const py = { 
         IdPinjamLab: 'LBP-' + Date.now().toString().slice(-4), 
         KodeLab: labKodeVal, 
