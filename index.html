@@ -127,7 +127,7 @@
 
   <main class="main-content w-100 no-sidebar" id="mainContent">
     
-    <!-- Login View (Sesuai Gambar 13) -->
+    <!-- Login View -->
     <div id="loginView" class="login-wrapper">
       <div class="login-card p-4 p-md-5">
         <div class="text-center mb-4">
@@ -440,7 +440,6 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
-  // DISESUAIKAN DENGAN KOLOM KAPITAL DI SUPABASE: Username, Password, Role, Nama, LabKode
   async function handleLoginSubmit(event) {
     event.preventDefault(); startLoading();
     const u = document.getElementById('loginUsername').value.trim();
@@ -504,6 +503,7 @@
     if(event && event.target) event.target.classList.add('active');
   }
 
+  // DISESUAIKAN: Nama tabel ditarik secara tepat dari Supabase
   async function loadData() {
     startLoading();
     try {
