@@ -995,7 +995,8 @@ function exportPDF(type) {
 
       if (imgData) {
         try {
-          doc.addImage(imgData, 'JPEG', 14, 10, 14, 14);
+          // Menggunakan format PNG agar transparansi aman tanpa latar hitam
+          doc.addImage(imgData, 'PNG', 14, 10, 14, 14);
           textX = 32; // Geser teks ke kanan jika ada logo
         } catch (e) {
           console.warn("Gagal merender logo ke PDF:", e);
@@ -1057,12 +1058,14 @@ function exportPDF(type) {
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           
-          // Beri warna latar belakang putih bersih agar transparansi PNG tidak jadi hitam
+          // Mengisi latar belakang canvas dengan putih bersih
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           
           ctx.drawImage(img, 0, 0);
-          const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+          
+          // Ekstrak canvas ke format image/png agar mendukung latar belakang putih bersih
+          const dataURL = canvas.toDataURL('image/png');
           buildPdf(dataURL);
         } catch (err) {
           buildPdf(null);
@@ -1075,7 +1078,6 @@ function exportPDF(type) {
       buildPdf(null);
     }
   }
-
   function backupDataLokal() { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(dbData,null,2)],{type:'application/json'})); a.download='Backup.json'; a.click(); }
   function bukaBookingPendingAdmin() { switchMenu('peminjaman'); switchSubTab('peminjamanLab'); }
 </script>
