@@ -42,8 +42,8 @@
     .chart-container { position: relative; width: 100%; height: 280px; }
     
     /* Barcode Grid Preview */
-    .barcode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
-    .barcode-card-item { border: 1px dashed #334155; border-radius: 4px; padding: 6px 4px; background: #ffffff; text-align: center; }
+    .barcode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; width: 100%; }
+    .barcode-card-item { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff; text-align: center; page-break-inside: avoid; break-inside: avoid; }
     .barcode-card-item .bc-title { font-weight: 700; font-size: 11px; color: #000; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .barcode-card-item .bc-subtitle { font-size: 9px; color: #334155; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .barcode-card-item canvas, .barcode-card-item img { width: 100% !important; max-width: 100% !important; height: auto !important; object-fit: contain; display: block; margin: 0 auto; }
@@ -81,20 +81,129 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-    /* CSS PRINT PERSIS SEPERTI VERSI GOOGLE SITES (14 HALAMAN RAPAT 3 KOLOM) */
+    /* =====================================================
+       CSS PRINT ASLI DARI GAS ANDA (DITERAPKAN KE VERCEL)
+       ===================================================== */
     @media print {
-      @page { size: A4 portrait; margin: 10mm; }
-      body, html { background: #ffffff !important; margin: 0 !important; padding: 0 !important; width: 210mm !important; -webkit-print-color-adjust: exact; }
-      body * { visibility: hidden !important; }
-      #printArea, #printArea * { visibility: visible !important; }
-      #printArea { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 190mm !important; margin: 0 auto !important; padding: 0 !important; border: none !important; background: #fff !important; }
-      
-      /* Mengembalikan Grid persis seperti tampilan acuan 14 halaman */
-      #barcodeGridContainer { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-      #barcodeGridContainer .barcode-card-item { border: 1px dashed #000 !important; background: #fff !important; padding: 6px 4px !important; page-break-inside: avoid !important; break-inside: avoid !important; }
-      #barcodeGridContainer .bc-title { font-size: 10.5px !important; font-weight: bold !important; color: #000 !important; }
-      #barcodeGridContainer .bc-subtitle { font-size: 8.5px !important; color: #000 !important; }
-      #barcodeGridContainer canvas { width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; margin: 0 auto !important; }
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+
+      html,
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+        display: block !important;
+        position: static !important;
+        transform: none !important;
+      }
+
+      /* Sembunyikan semua elemen body di luar printArea menggunakan display: none */
+      body > * {
+        display: none !important;
+      }
+
+      /* Hanya printArea yang ditampilkan */
+      body > #printArea {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        transform: none !important;
+        overflow: visible !important;
+      }
+
+      #printArea,
+      #printArea * {
+        visibility: visible !important;
+      }
+
+      /* Barcode Grid Print */
+      #barcodeGridContainer {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        column-gap: 8mm !important;
+        row-gap: 8mm !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        align-content: start !important;
+        align-items: start !important;
+        justify-content: start !important;
+        justify-items: stretch !important;
+        position: static !important;
+        transform: none !important;
+        float: none !important;
+      }
+
+      #barcodeGridContainer .barcode-card-item {
+        display: block !important;
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 8px 6px !important;
+        border: 1px dashed #000 !important;
+        border-radius: 4px !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        transform: none !important;
+        float: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      #barcodeGridContainer .bc-title {
+        font-size: 10.5px !important;
+        font-weight: bold !important;
+        color: #000 !important;
+      }
+
+      #barcodeGridContainer .bc-subtitle {
+        font-size: 8.5px !important;
+        color: #000 !important;
+      }
+
+      #barcodeGridContainer canvas {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        transform: none !important;
+      }
+
+      #barcodeGridContainer img {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        transform: none !important;
+      }
+
+      #barcodeGridContainer > .barcode-card-item:first-child {
+        margin-top: 0 !important;
+        padding-top: 8px !important;
+      }
     }
   </style>
 </head>
@@ -552,7 +661,6 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
-  // Helper untuk format tanggal Indonesia
   function formatDateIndo(dateStr) {
     if (!dateStr) return '';
     const parts = dateStr.split('-');
