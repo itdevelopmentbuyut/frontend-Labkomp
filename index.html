@@ -164,7 +164,7 @@
         </form>
 
         <div class="mt-4 pt-3 border-top text-center text-muted small" style="font-size:11px;">
-          <span>E-Labkomp V6.0 &bull; Lab Computer Management System</span><br>
+          <span>E-Labkomp V7.0 &bull; Lab Computer Management System</span><br>
           <span>Dibuat dengan penuh ❤️ oleh IT Development Labkom</span>
         </div>
       </div>
@@ -262,6 +262,10 @@
             <button class="btn btn-outline-primary action-btn" onclick="openModalPinjamLab()"><i class="fa-solid fa-door-open me-1"></i> Booking Lab</button>
           </div>
         </div>
+
+        <!-- CONTAINER INFORMASI MAINTENANCE LAB -->
+        <div id="maintenanceAlertContainer" class="mb-3"></div>
+
         <ul class="nav nav-tabs mb-3" id="peminjamanTabs">
           <li class="nav-item"><button class="nav-link active" onclick="switchSubTab('peminjamanBarang')">Peminjaman Barang</button></li>
           <li class="nav-item"><button class="nav-link" onclick="switchSubTab('peminjamanLab')">Booking Ruang Lab</button></li>
@@ -327,6 +331,37 @@
               </div>
             </div>
             <div class="mt-3 text-end"><button type="submit" class="btn btn-primary action-btn"><i class="fa-solid fa-save me-1"></i> Simpan Pengaturan</button></div>
+          </form>
+        </div>
+
+        <!-- Bagian Baru: Pengaturan Jadwal Maintenance Lab -->
+        <div class="card card-custom p-4 mb-4 border-start border-warning border-4">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Pengaturan Jadwal Maintenance Lab</h5>
+          <p class="text-muted small mb-3">Tentukan jadwal pemeliharaan laboratorium agar informasi larangan penggunaan tampil otomatis di dashboard guru.</p>
+          
+          <form id="formMaintenance" onsubmit="handleMaintenanceSubmit(event)">
+            <div class="row g-3">
+              <!-- Lab 1 -->
+              <div class="col-12 border-bottom pb-3">
+                <h6 class="fw-bold text-primary mb-2">Lab Komputer 1 (Banin)</h6>
+                <div class="row g-2">
+                  <div class="col-md-4"><label class="form-label small">Mulai Tanggal</label><input type="date" id="maintMulai1" class="form-control form-control-sm"></div>
+                  <div class="col-md-4"><label class="form-label small">Sampai Tanggal</label><input type="date" id="maintSelesai1" class="form-control form-control-sm"></div>
+                  <div class="col-md-4"><label class="form-label small">Keterangan / Perbaikan</label><input type="text" id="maintKet1" class="form-control form-control-sm" placeholder="Misal: Perbaikan Jaringan & OS"></div>
+                </div>
+              </div>
+
+              <!-- Lab 2 -->
+              <div class="col-12 pb-2">
+                <h6 class="fw-bold text-primary mb-2">Lab Komputer 2 (Banat)</h6>
+                <div class="row g-2">
+                  <div class="col-md-4"><label class="form-label small">Mulai Tanggal</label><input type="date" id="maintMulai2" class="form-control form-control-sm"></div>
+                  <div class="col-md-4"><label class="form-label small">Sampai Tanggal</label><input type="date" id="maintSelesai2" class="form-control form-control-sm"></div>
+                  <div class="col-md-4"><label class="form-label small">Keterangan / Perbaikan</label><input type="text" id="maintKet2" class="form-control form-control-sm" placeholder="Misal: Upgrade RAM & Pembersihan Debu"></div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 text-end"><button type="submit" class="btn btn-warning action-btn text-dark fw-semibold"><i class="fa-solid fa-save me-1"></i> Simpan Jadwal Maintenance</button></div>
           </form>
         </div>
 
@@ -474,7 +509,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 1. SUPABASE INIT (Pastikan URL & Key Anda sudah benar)
+  // 1. SUPABASE INIT
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -649,6 +684,7 @@
     populateSelectAvailableAset(); 
     renderDashboardPeminjamanHariIni();
     renderDashboardJadwalBesok();
+    renderMaintenanceNotice();
   }
 
   function updateHeaderSettings() {
@@ -666,6 +702,14 @@
     document.getElementById('cfgNIPKepalaLab').value = nipKepalaLab;
     document.getElementById('cfgLogoUrl').value = (logoUrl === 'EMPTY') ? '' : logoUrl;
 
+    // Load data maintenance ke form pengaturan
+    document.getElementById('maintMulai1').value = c['MaintMulai1'] || '';
+    document.getElementById('maintSelesai1').value = c['MaintSelesai1'] || '';
+    document.getElementById('maintKet1').value = c['MaintKet1'] || '';
+    document.getElementById('maintMulai2').value = c['MaintMulai2'] || '';
+    document.getElementById('maintSelesai2').value = c['MaintSelesai2'] || '';
+    document.getElementById('maintKet2').value = c['MaintKet2'] || '';
+
     const logoContainer = document.getElementById('headerLogoContainer');
     if(logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
       logoContainer.innerHTML = `<img src="${logoUrl}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
@@ -679,6 +723,48 @@
     document.getElementById('tdWaLab1').textContent = (userLab1 && userLab1.WhatsApp) ? userLab1.WhatsApp : '-';
     document.getElementById('tdWaLab2').textContent = (userLab2 && userLab2.WhatsApp) ? userLab2.WhatsApp : '-';
     fillRoutingWaInput();
+  }
+
+  function renderMaintenanceNotice() {
+    const container = document.getElementById('maintenanceAlertContainer');
+    if(!container) return;
+
+    const c = dbData.pengaturan;
+    const m1Mulai = c['MaintMulai1'];
+    const m1Selesai = c['MaintSelesai1'];
+    const m1Ket = c['MaintKet1'];
+
+    const m2Mulai = c['MaintMulai2'];
+    const m2Selesai = c['MaintSelesai2'];
+    const m2Ket = c['MaintKet2'];
+
+    let html = '';
+
+    if (m1Mulai && m1Selesai) {
+      html += `
+        <div class="alert alert-warning border-start border-warning border-4 shadow-sm mb-2 p-3 d-flex align-items-start gap-3">
+          <i class="fa-solid fa-triangle-exclamation text-warning fs-4 mt-1"></i>
+          <div>
+            <h6 class="fw-bold mb-1 text-dark">Informasi Pemeliharaan Lab Komputer 1 (Banin)</h6>
+            <p class="mb-0 small text-secondary">Diberitahukan kepada para guru bahwasanya <b>Lab Komputer 1 (Banin)</b> belum bisa digunakan pada tanggal <b>${m1Mulai}</b> s.d. <b>${m1Selesai}</b> karena sedang maintenance perbaikan pada <i>${m1Ket || 'perawatan perangkat'}</i>.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    if (m2Mulai && m2Selesai) {
+      html += `
+        <div class="alert alert-warning border-start border-warning border-4 shadow-sm mb-2 p-3 d-flex align-items-start gap-3">
+          <i class="fa-solid fa-triangle-exclamation text-warning fs-4 mt-1"></i>
+          <div>
+            <h6 class="fw-bold mb-1 text-dark">Informasi Pemeliharaan Lab Komputer 2 (Banat)</h6>
+            <p class="mb-0 small text-secondary">Diberitahukan kepada para guru bahwasanya <b>Lab Komputer 2 (Banat)</b> belum bisa digunakan pada tanggal <b>${m2Mulai}</b> s.d. <b>${m2Selesai}</b> karena sedang maintenance perbaikan pada <i>${m2Ket || 'perawatan perangkat'}</i>.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
   }
 
   function fillRoutingWaInput() {
@@ -905,6 +991,26 @@
       });
     }
 
+    // Validasi tambahan: Cek apakah tanggal booking masuk dalam rentang maintenance lab tersebut
+    const c = dbData.pengaturan;
+    let maintMulai = '', maintSelesai = '', maintKet = '';
+    if (labKodeVal === 'LAB-1') {
+      maintMulai = c['MaintMulai1']; maintSelesai = c['MaintSelesai1']; maintKet = c['MaintKet1'];
+    } else if (labKodeVal === 'LAB-2') {
+      maintMulai = c['MaintMulai2']; maintSelesai = c['MaintSelesai2']; maintKet = c['MaintKet2'];
+    }
+
+    if (maintMulai && maintSelesai) {
+      if (tglGuna >= maintMulai && tglGuna <= maintSelesai) {
+        endLoading();
+        return Swal.fire({
+          icon: 'error',
+          title: 'Lab Sedang Maintenance!',
+          text: `Mohon maaf, ${namaLabVal} sedang dalam jadwal pemeliharaan (${maintKet || 'perbaikan'}) pada tanggal ${maintMulai} s.d. ${maintSelesai}. Booking ditolak.`
+        });
+      }
+    }
+
     try {
       const { data: existingBookings, error: checkError } = await supabaseClient
         .from('Data_PeminjamanLab')
@@ -965,7 +1071,7 @@
       }
 
       if (targetWa) {
-        let msg = encodeURIComponent(`Assalamu'alaikum Admin ${namaLabVal}, saya ${pjVal} ingin konfirmasi pengajuan booking lab untuk kegiatan "${kegiatanVal}" pada tanggal ${tglGuna} (${jamMulai} - ${jamSelesai}). ID Booking: ${idBooking}. Mohon persetujuannya, terima kasih.`);
+        let msg = encodeURIComponent(`Halo Admin ${namaLabVal}, saya ${pjVal} ingin konfirmasi pengajuan booking lab untuk kegiatan "${kegiatanVal}" pada tanggal ${tglGuna} (${jamMulai} - ${jamSelesai}). ID Booking: ${idBooking}. Mohon persetujuannya, terima kasih.`);
         
         Swal.fire({
           icon: 'success',
@@ -1009,7 +1115,27 @@
         supabaseClient.from('Pengaturan').upsert({ Key: 'URL Logo Sekolah (Link Gambar / Logo)', Value: document.getElementById('cfgLogoUrl').value.trim() || 'EMPTY' }, { onConflict: 'Key' })
       ]);
       loadData();
-      Swal.fire('Sukses', 'Pengaturan disimpan', 'success');
+      Swal.fire('Sukses', 'Pengaturan identitas disimpan', 'success');
+    } catch(err) {
+      Swal.fire('Error', err.message, 'error');
+      endLoading();
+    }
+  }
+
+  async function handleMaintenanceSubmit(e) {
+    e.preventDefault();
+    startLoading();
+    try {
+      await Promise.all([
+        supabaseClient.from('Pengaturan').upsert({ Key: 'MaintMulai1', Value: document.getElementById('maintMulai1').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'MaintSelesai1', Value: document.getElementById('maintSelesai1').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'MaintKet1', Value: document.getElementById('maintKet1').value.trim() }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'MaintMulai2', Value: document.getElementById('maintMulai2').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'MaintSelesai2', Value: document.getElementById('maintSelesai2').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'MaintKet2', Value: document.getElementById('maintKet2').value.trim() }, { onConflict: 'Key' })
+      ]);
+      loadData();
+      Swal.fire('Sukses', 'Jadwal maintenance lab berhasil diperbarui', 'success');
     } catch(err) {
       Swal.fire('Error', err.message, 'error');
       endLoading();
