@@ -41,6 +41,11 @@
     .card-custom:hover { transform: translateY(-2px); }
     .chart-container { position: relative; width: 100%; height: 280px; }
     
+    /* Perbaikan Barcode agar pas di dalam kotak */
+    .barcode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+    .barcode-card-item { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff; text-align: center; page-break-inside: avoid; break-inside: avoid; overflow: hidden; }
+    .barcode-card-item canvas, .barcode-card-item img { width: 100% !important; max-width: 100% !important; height: auto !important; object-fit: contain; }
+
     @media (min-width: 769px) {
       .sidebar { transform: translateX(0) !important; }
       .sidebar.d-none { display: none !important; }
@@ -73,8 +78,6 @@
     .login-wrapper::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(14, 165, 233, 0.15); bottom: -80px; left: -80px; filter: blur(50px); }
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
-    .barcode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-    .barcode-card-item { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; background: #ffffff; text-align: center; page-break-inside: avoid; break-inside: avoid; }
     
     @media print {
       @page { size: A4 portrait; margin: 8mm; }
@@ -702,7 +705,6 @@
     document.getElementById('cfgNIPKepalaLab').value = nipKepalaLab;
     document.getElementById('cfgLogoUrl').value = (logoUrl === 'EMPTY') ? '' : logoUrl;
 
-    // Load data maintenance ke form pengaturan
     document.getElementById('maintMulai1').value = c['MaintMulai1'] || '';
     document.getElementById('maintSelesai1').value = c['MaintSelesai1'] || '';
     document.getElementById('maintKet1').value = c['MaintKet1'] || '';
@@ -854,17 +856,32 @@
   }
 
   function renderDashboardPeminjamanHariIni() {
-    const pad = n => String(n).padStart(2, '0'); const d = new Date(); const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const pad = n => String(n).padStart(2, '0'); 
+    const d = new Date(); 
+    const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    
     const data = dbData.peminjamanLab.filter(x => x.TanggalGuna === today);
+    
     document.getElementById('dashboardPeminjamanCount').textContent = data.length;
-    document.getElementById('dashboardPeminjamanList').innerHTML = data.length ? data.map(i => `<div class="d-flex justify-content-between py-2 border-bottom"><div><b>${i.NamaLab}</b><br><small>${i.Kegiatan} (${i.JamMulai}-${i.JamSelesai})</small></div><span class="badge bg-primary">${i.Status}</span></div>`).join('') : '<small>Tidak ada booking hari ini.</small>';
+    document.getElementById('dashboardPeminjamanList').innerHTML = data.length ? data.map(i => {
+      let badgeClass = i.Status === 'Disetujui' ? 'bg-success' : i.Status === 'Pending' ? 'bg-warning text-dark' : 'bg-secondary';
+      return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom"><div><b>${i.NamaLab}</b> - <small class="text-muted">${i.PenanggungJawab}</small><br><small><i class="fa-solid fa-clock me-1 text-primary"></i>${i.JamMulai} - ${i.JamSelesai} | ${i.Kegiatan}</small></div><span class="badge ${badgeClass}">${i.Status}</span></div>`;
+    }).join('') : '<small class="text-muted">Tidak ada booking untuk hari ini.</small>';
   }
   
   function renderDashboardJadwalBesok() {
-    const pad = n => String(n).padStart(2, '0'); const d = new Date(); d.setDate(d.getDate()+1); const tmrw = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const data = dbData.peminjamanLab.filter(x => x.TanggalGuna === tmrw && x.Status === 'Disetujui');
+    const pad = n => String(n).padStart(2, '0'); 
+    const d = new Date(); 
+    d.setDate(d.getDate() + 1); 
+    const tmrw = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    
+    const data = dbData.peminjamanLab.filter(x => x.TanggalGuna === tmrw);
+    
     document.getElementById('dashboardBesokCount').textContent = data.length;
-    document.getElementById('dashboardBesokList').innerHTML = data.length ? data.map(i => `<div class="d-flex justify-content-between py-2 border-bottom"><div><b>${i.NamaLab}</b><br><small>${i.Kegiatan}</small></div><span class="badge bg-success">Disetujui</span></div>`).join('') : '<small>Tidak ada jadwal besok.</small>';
+    document.getElementById('dashboardBesokList').innerHTML = data.length ? data.map(i => {
+      let badgeClass = i.Status === 'Disetujui' ? 'bg-success' : i.Status === 'Pending' ? 'bg-warning text-dark' : 'bg-secondary';
+      return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom"><div><b>${i.NamaLab}</b> - <small class="text-muted">${i.PenanggungJawab}</small><br><small><i class="fa-solid fa-clock me-1 text-primary"></i>${i.JamMulai} - ${i.JamSelesai} | ${i.Kegiatan}</small></div><span class="badge ${badgeClass}">${i.Status}</span></div>`;
+    }).join('') : '<small class="text-muted">Tidak ada jadwal booking untuk besok.</small>';
   }
 
   function renderAsetTable() {
@@ -991,7 +1008,6 @@
       });
     }
 
-    // Validasi tambahan: Cek apakah tanggal booking masuk dalam rentang maintenance lab tersebut
     const c = dbData.pengaturan;
     let maintMulai = '', maintSelesai = '', maintKet = '';
     if (labKodeVal === 'LAB-1') {
@@ -1161,17 +1177,54 @@
     const sc = document.getElementById('selectAsetBarcode'); sc.innerHTML = ''; dbData.aset.forEach(a => sc.innerHTML += `<option value="${a.KodeAset}">${a.KodeAset}</option>`);
     const sk = document.getElementById('selectKategoriBarcode'); sk.innerHTML = ''; [...new Set(dbData.aset.map(a=>a.Kategori))].forEach(k => sk.innerHTML += `<option value="${k}">${k}</option>`);
   }
+  
   function toggleBarcodePrintMode() {
     const m = document.getElementById('selectModePrintBarcode').value;
     document.getElementById('wrapperSelectSingleAset').classList.toggle('d-none', m!=='single');
     document.getElementById('wrapperSelectKategoriAset').classList.toggle('d-none', m!=='kategori');
     renderBarcodeLabels();
   }
+
   function renderBarcodeLabels() {
-    const m = document.getElementById('selectModePrintBarcode').value, c = document.getElementById('barcodeGridContainer'); c.innerHTML='';
-    let s = m==='single' ? dbData.aset.filter(x=>x.KodeAset===document.getElementById('selectAsetBarcode').value) : m==='kategori' ? dbData.aset.filter(x=>x.Kategori===document.getElementById('selectKategoriBarcode').value) : dbData.aset;
-    s.forEach((i,x) => c.innerHTML += `<div class="barcode-card-item"><h6>${i.NamaBarang}</h6><canvas id="bc_${x}"></canvas></div>`);
-    setTimeout(() => s.forEach((i,x) => { try{ JsBarcode(`#bc_${x}`, i.KodeAset, {format:"CODE128", width:1.5, height:40, displayValue:true, fontSize:12}); }catch(e){} }), 50);
+    const m = document.getElementById('selectModePrintBarcode').value;
+    const c = document.getElementById('barcodeGridContainer'); 
+    c.innerHTML = '';
+    
+    let s = m === 'single' ? dbData.aset.filter(x => x.KodeAset === document.getElementById('selectAsetBarcode').value) : 
+            m === 'kategori' ? dbData.aset.filter(x => x.Kategori === document.getElementById('selectKategoriBarcode').value) : 
+            dbData.aset;
+
+    if (!s.length) {
+      c.innerHTML = '<p class="text-muted text-center w-100 py-3">Tidak ada data aset untuk dicetak.</p>';
+      return;
+    }
+
+    s.forEach((i, x) => {
+      c.innerHTML += `
+        <div class="barcode-card-item">
+          <div class="fw-bold text-dark small text-truncate mb-1" style="font-size: 12px;" title="${i.NamaBarang}">${i.NamaBarang}</div>
+          <canvas id="bc_${x}"></canvas>
+        </div>
+      `;
+    });
+
+    setTimeout(() => {
+      s.forEach((i, x) => {
+        try {
+          JsBarcode(`#bc_${x}`, i.KodeAset, {
+            format: "CODE128",
+            width: 1.8,
+            height: 45,
+            displayValue: true,
+            fontSize: 11,
+            textMargin: 4,
+            margin: 4
+          });
+        } catch (e) {
+          console.warn("Gagal render barcode:", e);
+        }
+      });
+    }, 50);
   }
 
   function exportPDF(type) {
