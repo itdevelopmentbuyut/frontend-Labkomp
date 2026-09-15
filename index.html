@@ -980,8 +980,7 @@
     s.forEach((i,x) => c.innerHTML += `<div class="barcode-card-item"><h6>${i.NamaBarang}</h6><canvas id="bc_${x}"></canvas></div>`);
     setTimeout(() => s.forEach((i,x) => { try{ JsBarcode(`#bc_${x}`, i.KodeAset, {format:"CODE128", width:1.5, height:40, displayValue:true, fontSize:12}); }catch(e){} }), 50);
   }
-
-  function exportPDF(type) {
+function exportPDF(type) {
     if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
       return Swal.fire('Error', 'Library jsPDF belum termuat.', 'error');
     }
@@ -989,23 +988,89 @@
     const doc = new jsPDF();
     const sekolah = dbData.pengaturan['NamaSekolah'] || 'E-Labkomp';
     const alamat = dbData.pengaturan['AlamatSekolah'] || '';
+    const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
-    doc.setFontSize(16); doc.text(sekolah, 14, 15);
-    doc.setFontSize(10); doc.text(alamat, 14, 21);
-    doc.line(14, 26, 196, 26);
+    const buildPdf = (imgData) => {
+      let startX = 14;
+      let textX = 14;
 
-    if (type === 'aset') {
-      doc.text('Laporan Master Data Aset', 14, 34);
-      doc.autoTable({ startY: 38, head: [['Kode', 'Nama', 'Kategori', 'Kondisi', 'Lokasi', 'Status']], body: dbData.aset.map(i => [i.KodeAset, i.NamaBarang, i.Kategori, i.Kondisi, i.Lokasi, i.Status]), theme: 'grid' });
-      doc.save('Laporan_Aset.pdf');
-    } else if (type === 'peminjaman') {
-      doc.text('Laporan Peminjaman Barang', 14, 34);
-      doc.autoTable({ startY: 38, head: [['ID', 'Aset', 'Peminjam', 'Kelas', 'Tgl', 'Status']], body: dbData.peminjaman.map(i => [i.IdPinjam, i.KodeAset, i.Peminjam, i.KelasInstansi, i.TanggalPinjam, i.Status]), theme: 'grid' });
-      doc.save('Laporan_Peminjaman.pdf');
-    } else if (type === 'peminjamanLab') {
-      doc.text('Laporan Booking Lab', 14, 34);
-      doc.autoTable({ startY: 38, head: [['ID', 'Lab', 'Kegiatan', 'PJ', 'Tanggal', 'Status']], body: dbData.peminjamanLab.map(i => [i.IdPinjamLab, i.NamaLab, i.Kegiatan, i.PenanggungJawab, i.TanggalGuna, i.Status]), theme: 'grid' });
-      doc.save('Laporan_Booking.pdf');
+      // Jika logo berhasil dimuat dan valid, tambahkan ke PDF
+      if (imgData) {
+        try {
+          doc.addImage(imgData, 'JPEG', 14, 10, 14, 14);
+          textX = 32; // Geser teks ke kanan jika ada logo
+        } catch (e) {
+          console.warn("Gagal merender logo ke PDF:", e);
+        }
+      }
+
+      doc.setFontSize(16);
+      doc.text(sekolah, textX, 16);
+      doc.setFontSize(10);
+      doc.text(alamat, textX, 22);
+      doc.line(14, 28, 196, 28);
+
+      if (type === 'aset') {
+        doc.setFontSize(12);
+        doc.text('Laporan Master Data Aset', 14, 36);
+        doc.autoTable({ 
+          startY: 40, 
+          head: [['Kode', 'Nama', 'Kategori', 'Kondisi', 'Lokasi', 'Status']], 
+          body: dbData.aset.map(i => [i.KodeAset, i.NamaBarang, i.Kategori, i.Kondisi, i.Lokasi, i.Status]), 
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235] }
+        });
+        doc.save('Laporan_Aset.pdf');
+
+      } else if (type === 'peminjaman') {
+        doc.setFontSize(12);
+        doc.text('Laporan Peminjaman Barang', 14, 36);
+        doc.autoTable({ 
+          startY: 40, 
+          head: [['ID', 'Aset', 'Peminjam', 'Kelas', 'Tgl', 'Status']], 
+          body: dbData.peminjaman.map(i => [i.IdPinjam, i.KodeAset, i.Peminjam, i.KelasInstansi, i.TanggalPinjam, i.Status]), 
+          theme: 'grid',
+          headStyles: { fillColor: [16, 185, 129] }
+        });
+        doc.save('Laporan_Peminjaman.pdf');
+
+      } else if (type === 'peminjamanLab') {
+        doc.setFontSize(12);
+        doc.text('Laporan Booking Lab', 14, 36);
+        doc.autoTable({ 
+          startY: 40, 
+          head: [['ID', 'Lab', 'Kegiatan', 'PJ', 'Tanggal', 'Status']], 
+          body: dbData.peminjamanLab.map(i => [i.IdPinjamLab, i.NamaLab, i.Kegiatan, i.PenanggungJawab, i.TanggalGuna, i.Status]), 
+          theme: 'grid',
+          headStyles: { fillColor: [245, 158, 11] }
+        });
+        doc.save('Laporan_Booking.pdf');
+      }
+    };
+
+    // Proses ambil gambar logo secara asinkron sebelum generate PDF
+    if (logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.src = logoUrl;
+      img.onload = function() {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const dataURL = canvas.toDataURL('image/jpeg');
+          buildPdf(dataURL);
+        } catch (err) {
+          buildPdf(null);
+        }
+      };
+      img.onerror = function() {
+        buildPdf(null);
+      };
+    } else {
+      buildPdf(null);
     }
   }
 
