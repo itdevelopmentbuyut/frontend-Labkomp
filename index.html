@@ -299,7 +299,7 @@
         </div>
       </div>
 
-      <!-- Pengaturan (Sesuai Persis Gambar Referensi Anda) -->
+      <!-- Pengaturan -->
       <div id="menuPengaturan" class="menu-section d-none">
         
         <!-- Bagian 1: Pengaturan Identitas Sekolah -->
@@ -316,7 +316,7 @@
           </form>
         </div>
 
-        <!-- Bagian 2: Manajemen Admin Lab (Persis seperti gambar) -->
+        <!-- Bagian 2: Manajemen Admin Lab -->
         <div class="card card-custom p-4">
           <div class="d-flex align-items-center mb-1">
             <i class="fa-solid fa-user-gear text-primary fs-4 me-2"></i>
@@ -329,7 +329,7 @@
             <div class="row g-3 mb-3">
               <div class="col-md-6">
                 <label class="form-label fw-semibold text-dark small">Nama Admin</label>
-                <input type="text" id="cfgNamaAdmin" class="form-control" placeholder="Contoh: Admin Lab 1" value="Admin WA Lab" required>
+                <input type="text" id="cfgNamaAdmin" class="form-control" value="Admin WA Lab" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold text-dark small">Admin untuk Lab</label>
@@ -466,7 +466,7 @@
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let currentUser = null;
-  let dbData = { aset: [], peminjaman: [], peminjamanLab: [], adminLab: [], pengaturan: {} };
+  let dbData = { aset: [], peminjaman: [], peminjamanLab: [], users: [], pengaturan: {} };
   let bsModalAset, bsModalPinjamBarang, bsModalPinjamLab;
   let chartKondisiObj = null, chartStatusObj = null;
 
@@ -539,7 +539,7 @@
 
   function applyRolePermissions() {
     const r = currentUser ? currentUser.role : 'Umum';
-    const isAdmin = r === 'Admin Lab' || r === 'Super Admin';
+    const isAdmin = r === 'Admin Lab' || r === 'Super Admin' || r === 'Admin Lab Routing';
     const isSuper = r === 'Super Admin';
     
     document.getElementById('menuItemBarcode')?.classList.toggle('d-none', !isAdmin);
@@ -577,7 +577,7 @@
       dbData.aset = rAset.data || [];
       dbData.peminjaman = rPinjam.data || [];
       dbData.peminjamanLab = rLab.data || [];
-      dbData.adminLab = (rUsers.data || []).filter(u => u.Role === 'Admin Lab');
+      dbData.users = rUsers.data || [];
       if(rConfig.data) dbData.pengaturan = rConfig.data;
       renderAllViews();
     } catch(e) { Swal.fire('Error Load', e.message, 'error'); }
@@ -604,16 +604,19 @@
     document.getElementById('cfgKepalaLab').value = c.KepalaLab || '';
     document.getElementById('cfgNIPKepalaLab').value = c.NIPKepalaLab || '';
     
-    document.getElementById('tdWaLab1').textContent = c.WaLab1 || '-';
-    document.getElementById('tdWaLab2').textContent = c.WaLab2 || '-';
+    // Ambil WhatsApp dari tabel Users (routing_lab1 & routing_lab2)
+    const userLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
+    const userLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
+
+    document.getElementById('tdWaLab1').textContent = (userLab1 && userLab1.WhatsApp) ? userLab1.WhatsApp : '-';
+    document.getElementById('tdWaLab2').textContent = (userLab2 && userLab2.WhatsApp) ? userLab2.WhatsApp : '-';
     fillRoutingWaInput();
   }
 
   function fillRoutingWaInput() {
     const sel = document.getElementById('selectRoutingLab').value;
-    const c = dbData.pengaturan;
-    if(sel === 'LAB-1') document.getElementById('cfgWaInput').value = c.WaLab1 || '';
-    else if(sel === 'LAB-2') document.getElementById('cfgWaInput').value = c.WaLab2 || '';
+    const targetUser = dbData.users.find(u => u.Username === (sel === 'LAB-1' ? 'routing_lab1' : 'routing_lab2'));
+    document.getElementById('cfgWaInput').value = (targetUser && targetUser.WhatsApp) ? targetUser.WhatsApp : '';
   }
 
   function editRouting(labCode) {
@@ -626,10 +629,9 @@
     const res = await Swal.fire({title:'Kosongkan WhatsApp?', icon:'question', showCancelButton:true});
     if(res.isConfirmed) {
       startLoading();
-      let py = labCode === 'LAB-1' ? { WaLab1: '' } : { WaLab2: '' };
+      const uname = labCode === 'LAB-1' ? 'routing_lab1' : 'routing_lab2';
       try {
-        const {data} = await supabaseClient.from('Pengaturan').select('*').limit(1).maybeSingle();
-        if(data) await supabaseClient.from('Pengaturan').update(py).eq('id', data.id);
+        await supabaseClient.from('Users').update({ WhatsApp: null }).eq('Username', uname);
         loadData();
         Swal.fire('Berhasil', 'Nomor WA dikosongkan', 'success');
       } catch(err) { Swal.fire('Error', err.message, 'error'); endLoading(); }
@@ -685,7 +687,7 @@
     if(!data.length) return t.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada data</td></tr>';
     t.innerHTML = data.map(i => {
       let b = i.Kondisi==='Rusak'?'bg-danger':i.Kondisi==='Perlu Perbaikan'?'bg-warning text-dark':'bg-success';
-      let act = (r==='Admin Lab'||r==='Super Admin') ? `<button class="btn btn-sm btn-outline-primary" onclick="openModalAset(true,'${i.KodeAset}')">Edit</button> <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteAset('${i.KodeAset}')">Hapus</button>` : '-';
+      let act = (r==='Admin Lab'||r==='Super Admin'||r==='Admin Lab Routing') ? `<button class="btn btn-sm btn-outline-primary" onclick="openModalAset(true,'${i.KodeAset}')">Edit</button> <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteAset('${i.KodeAset}')">Hapus</button>` : '-';
       return `<tr><td><b>${i.KodeAset}</b></td><td>${i.NamaBarang}</td><td>${i.Kategori}</td><td><small>${i.Spesifikasi}</small></td><td><span class="badge ${b}">${i.Kondisi}</span></td><td>${i.Lokasi}</td><td>${i.Status}</td><td>${act}</td></tr>`;
     }).join('');
   }
@@ -715,7 +717,7 @@
     const t = document.getElementById('tablePinjamBarangBody'); t.innerHTML = ''; const r = currentUser ? currentUser.role : 'Umum';
     if(!dbData.peminjaman.length) return t.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada peminjaman</td></tr>';
     t.innerHTML = dbData.peminjaman.map(i => {
-      let act = (i.Status==='Dipinjam' && (r==='Admin Lab'||r==='Super Admin')) ? `<button class="btn btn-sm btn-success" onclick="handleKembalikanBarang('${i.IdPinjam}','${i.KodeAset}')">Kembalikan</button>` : '-';
+      let act = (i.Status==='Dipinjam' && (r==='Admin Lab'||r==='Super Admin'||r==='Admin Lab Routing')) ? `<button class="btn btn-sm btn-success" onclick="handleKembalikanBarang('${i.IdPinjam}','${i.KodeAset}')">Kembalikan</button>` : '-';
       return `<tr><td>${i.IdPinjam}</td><td>${i.KodeAset}</td><td>${i.Peminjam}</td><td>${i.KelasInstansi}</td><td><small>${i.TanggalPinjam}</small></td><td><small>${i.TanggalKembali||'-'}</small></td><td>${i.Status}</td><td>${act}</td></tr>`;
     }).join('');
   }
@@ -745,15 +747,19 @@
     t.innerHTML = dbData.peminjamanLab.map(i => {
       let c = i.Status==='Disetujui'?'bg-success':i.Status==='Ditolak'?'bg-danger':'bg-warning text-dark';
       let act = '-';
-      if(r==='Admin Lab' || r==='Super Admin') {
+      if(r==='Admin Lab' || r==='Super Admin' || r==='Admin Lab Routing') {
         if(i.Status==='Pending') act = `<button class="btn btn-sm btn-success" onclick="handleStatusLab('${i.IdPinjamLab}','Disetujui')">Setujui</button> <button class="btn btn-sm btn-danger" onclick="handleStatusLab('${i.IdPinjamLab}','Ditolak')">Tolak</button>`;
         else if(i.Status==='Disetujui') act = `<button class="btn btn-sm btn-primary" onclick="handleStatusLab('${i.IdPinjamLab}','Selesai')">Selesai</button>`;
         else if(i.Status==='Selesai' || i.Status==='Ditolak') act = `<button class="btn btn-sm btn-outline-danger" onclick="handleArchiveLab('${i.IdPinjamLab}')">Hapus Arsip</button>`;
       }
 
+      // Ambil nomor WA routing dari tabel Users
       let targetWa = '';
-      if(i.KodeLab === 'LAB-1') targetWa = dbData.pengaturan.WaLab1 || '';
-      else if(i.KodeLab === 'LAB-2') targetWa = dbData.pengaturan.WaLab2 || '';
+      const uLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
+      const uLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
+
+      if(i.KodeLab === 'LAB-1') targetWa = (uLab1 && uLab1.WhatsApp) ? uLab1.WhatsApp : '';
+      else if(i.KodeLab === 'LAB-2') targetWa = (uLab2 && uLab2.WhatsApp) ? uLab2.WhatsApp : '';
 
       let waBtn = '-';
       if(targetWa) {
@@ -877,18 +883,10 @@
     e.preventDefault(); startLoading();
     const selectedLab = document.getElementById('selectRoutingLab').value;
     const waVal = document.getElementById('cfgWaInput').value.trim();
-
-    let py = {};
-    if(selectedLab === 'LAB-1') py.WaLab1 = waVal;
-    else if(selectedLab === 'LAB-2') py.WaLab2 = waVal;
+    const targetUname = (selectedLab === 'LAB-1') ? 'routing_lab1' : 'routing_lab2';
 
     try { 
-      const {data} = await supabaseClient.from('Pengaturan').select('*').limit(1).maybeSingle(); 
-      if(data) {
-        await supabaseClient.from('Pengaturan').update(py).eq('id', data.id);
-      } else {
-        await supabaseClient.from('Pengaturan').insert([py]);
-      }
+      await supabaseClient.from('Users').update({ WhatsApp: waVal }).eq('Username', targetUname);
       loadData(); 
       Swal.fire('Sukses', 'Nomor WhatsApp admin lab berhasil disimpan', 'success'); 
     } catch(err) { 
