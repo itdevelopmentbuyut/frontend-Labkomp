@@ -299,24 +299,77 @@
         </div>
       </div>
 
-      <!-- Pengaturan (Khusus Super Admin) -->
+      <!-- Pengaturan (Disusun Persis seperti Referensi Gambar Anda) -->
       <div id="menuPengaturan" class="menu-section d-none">
-        <div class="card card-custom p-4">
-          <h4 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Pengaturan & Routing WA Admin Lab</h4>
+        
+        <!-- Bagian 1: Pengaturan Identitas Sekolah -->
+        <div class="card card-custom p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-school text-primary me-2"></i>Pengaturan Identitas Sekolah</h5>
           <form id="formPengaturan" onsubmit="handlePengaturanSubmit(event)">
             <div class="row g-3">
               <div class="col-md-6"><label class="form-label">Nama Sekolah</label><input type="text" id="cfgNamaSekolah" class="form-control" required></div>
               <div class="col-md-6"><label class="form-label">Alamat</label><input type="text" id="cfgAlamatSekolah" class="form-control" required></div>
               <div class="col-md-6"><label class="form-label">Kepala Lab</label><input type="text" id="cfgKepalaLab" class="form-control" required></div>
               <div class="col-md-6"><label class="form-label">NIP Kepala Lab</label><input type="text" id="cfgNIPKepalaLab" class="form-control" required></div>
-              <hr class="my-3">
-              <h6 class="fw-bold text-primary mb-0">Nomor Routing WhatsApp Admin Lab</h6>
-              <div class="col-md-6"><label class="form-label">No. WA Admin Lab 1 (LAB-1)</label><input type="text" id="cfgWaLab1" class="form-control" placeholder="Contoh: 628123456789" required></div>
-              <div class="col-md-6"><label class="form-label">No. WA Admin Lab 2 (LAB-2)</label><input type="text" id="cfgWaLab2" class="form-control" placeholder="Contoh: 628987654321" required></div>
             </div>
-            <div class="mt-4 text-end"><button type="submit" class="btn btn-primary action-btn"><i class="fa-solid fa-save me-1"></i> Simpan Pengaturan</button></div>
+            <div class="mt-3 text-end"><button type="submit" class="btn btn-primary action-btn"><i class="fa-solid fa-save me-1"></i> Simpan Pengaturan</button></div>
           </form>
         </div>
+
+        <!-- Bagian 2: Pengaturan Manajemen Admin Lab -->
+        <div class="card card-custom p-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-user-shield text-primary me-2"></i>Manajemen Admin Lab</h5>
+            <span class="badge bg-primary px-3 py-1" style="font-size: 11px;">2 / 2 WA</span>
+          </div>
+          <p class="text-muted small mb-3">Super Admin dapat mengatur kontak WhatsApp Admin untuk Lab Komputer 1 (Banin) dan Lab Komputer 2 (Banat).</p>
+          
+          <form id="formAdminRouting" onsubmit="handleAdminRoutingSubmit(event)">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Pilih Lab / Admin</label>
+                <select id="selectRoutingLab" class="form-select" onchange="fillRoutingWaInput()">
+                  <option value="LAB-1">Lab Komputer 1 (Banin)</option>
+                  <option value="LAB-2">Lab Komputer 2 (Banat)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">WhatsApp Admin</label>
+                <input type="text" id="cfgWaInput" class="form-control" placeholder="628xxxxxxxxxx" required>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mb-4">
+              <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="document.getElementById('formAdminRouting').reset();">Batal / Reset</button>
+              <button type="submit" class="btn btn-primary btn-sm px-4 action-btn"><i class="fa-solid fa-user-plus me-1"></i> Simpan Admin</button>
+            </div>
+          </form>
+
+          <!-- Tabel Ringkasan Admin Lab -->
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr><th>Admin</th><th>Lab</th><th>WhatsApp</th><th class="text-center">Status</th><th class="text-center">Aksi</th></tr>
+              </thead>
+              <tbody id="tableAdminRoutingBody">
+                <tr>
+                  <td><b>Admin WA Lab Komputer 1 (Banin)</b><br><small class="text-muted">@routing_lab1</small></td>
+                  <td>Lab Komputer 1 (Banin)</td>
+                  <td id="tdWaLab1">-</td>
+                  <td class="text-center"><span class="badge bg-success">Aktif</span></td>
+                  <td class="text-center"><button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="editRouting('LAB-1')"><i class="fa-solid fa-pen"></i></button></td>
+                </tr>
+                <tr>
+                  <td><b>Admin WA Lab Komputer 2 (Banat)</b><br><small class="text-muted">@routing_lab2</small></td>
+                  <td>Lab Komputer 2 (Banat)</td>
+                  <td id="tdWaLab2">-</td>
+                  <td class="text-center"><span class="badge bg-success">Aktif</span></td>
+                  <td class="text-center"><button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="editRouting('LAB-2')"><i class="fa-solid fa-pen"></i></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -374,7 +427,7 @@
           <div class="mb-3"><label class="form-label">Ruang Lab</label><select id="labKode" class="form-select" required><option value="LAB-1">Lab Komputer 1 (Banin)</option><option value="LAB-2">Lab Komputer 2 (Banat)</option></select></div>
           <div class="mb-3"><label class="form-label">Kegiatan</label><input type="text" id="labKegiatan" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Penanggung Jawab</label><input type="text" id="labPJ" class="form-control" required></div>
-          <div class="mb-3"><label class="form-label">Tanggal Penggunaan (H-1 / Seterusnya)</label><input type="date" id="labTanggal" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Tanggal Penggunaan (Minimal H-1)</label><input type="date" id="labTanggal" class="form-control" required></div>
           <div class="row g-2 mb-3">
             <div class="col-6"><label class="form-label">Jam Mulai</label><input type="time" id="labMulai" class="form-control" required></div>
             <div class="col-6"><label class="form-label">Jam Selesai</label><input type="time" id="labSelesai" class="form-control" required></div>
@@ -465,7 +518,6 @@
     }
   }
 
-  // HAK AKSES: ADMIN LAB HANYA SAMPAI MENU LAPORAN, PENGATURAN KHUSUS SUPER ADMIN
   function applyRolePermissions() {
     const r = currentUser ? currentUser.role : 'Umum';
     const isAdmin = r === 'Admin Lab' || r === 'Super Admin';
@@ -532,8 +584,23 @@
     document.getElementById('cfgAlamatSekolah').value = c.AlamatSekolah || '';
     document.getElementById('cfgKepalaLab').value = c.KepalaLab || '';
     document.getElementById('cfgNIPKepalaLab').value = c.NIPKepalaLab || '';
-    document.getElementById('cfgWaLab1').value = c.WaLab1 || '';
-    document.getElementById('cfgWaLab2').value = c.WaLab2 || '';
+    
+    document.getElementById('tdWaLab1').textContent = c.WaLab1 || '-';
+    document.getElementById('tdWaLab2').textContent = c.WaLab2 || '-';
+    fillRoutingWaInput();
+  }
+
+  function fillRoutingWaInput() {
+    const sel = document.getElementById('selectRoutingLab').value;
+    const c = dbData.pengaturan;
+    if(sel === 'LAB-1') document.getElementById('cfgWaInput').value = c.WaLab1 || '';
+    else if(sel === 'LAB-2') document.getElementById('cfgWaInput').value = c.WaLab2 || '';
+  }
+
+  function editRouting(labCode) {
+    document.getElementById('selectRoutingLab').value = labCode;
+    fillRoutingWaInput();
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }
 
   function renderDashboard() {
@@ -638,7 +705,6 @@
     if(res.isConfirmed) { startLoading(); await supabaseClient.from('Data_Peminjaman').update({Status:'Dikembalikan',TanggalKembali:new Date().toISOString().split('T')[0]}).eq('IdPinjam',id); await supabaseClient.from('Data_Labkomp').update({Status:'Tersedia'}).eq('KodeAset',k); loadData(); }
   }
 
-  // RENDER TABEL BOOKING LAB DENGAN TOMBOL KONFIRMASI WA ROUTING OTOMATIS
   function renderPinjamLabTable() {
     const t = document.getElementById('tablePinjamLabBody'); t.innerHTML = ''; const r = currentUser ? currentUser.role : 'Umum';
     if(!dbData.peminjamanLab.length) return t.innerHTML = '<tr><td colspan="9" class="text-center">Kosong</td></tr>';
@@ -652,7 +718,6 @@
         else if(i.Status==='Selesai' || i.Status==='Ditolak') act = `<button class="btn btn-sm btn-outline-danger" onclick="handleArchiveLab('${i.IdPinjamLab}')">Hapus Arsip</button>`;
       }
 
-      // Routing No WA berdasarkan Lab (Lab 1 ke WaLab1, Lab 2 ke WaLab2)
       let targetWa = '';
       if(i.KodeLab === 'LAB-1') targetWa = dbData.pengaturan.WaLab1 || '';
       else if(i.KodeLab === 'LAB-2') targetWa = dbData.pengaturan.WaLab2 || '';
@@ -671,7 +736,6 @@
 
   function openModalPinjamLab() { document.getElementById('formPinjamLab').reset(); bsModalPinjamLab.show(); }
 
-  // VALIDASI KETAT: TIDAK BOLEH HARI INI (MINIMAL H-1) & CEK BENTROK POP-UP
   async function handlePinjamLabSubmit(e) {
     e.preventDefault(); startLoading();
     
@@ -681,7 +745,6 @@
     const jamMulai = document.getElementById('labMulai').value;
     const jamSelesai = document.getElementById('labSelesai').value;
 
-    // 1. Validasi Tanggal: Tidak boleh hari ini, minimal H-1 atau hari selanjutnya
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(tglGuna);
@@ -699,7 +762,6 @@
       });
     }
 
-    // 2. Validasi Cek Bentrok Jadwal via Pop-up
     try {
       const { data: existingBookings, error: checkError } = await supabaseClient
         .from('Data_PeminjamanLab')
@@ -729,7 +791,6 @@
         });
       }
 
-      // Simpan jika lolos seluruh validasi
       const py = { 
         IdPinjamLab: 'LBP-' + Date.now().toString().slice(-4), 
         KodeLab: labKodeVal, 
@@ -765,16 +826,38 @@
       NamaSekolah: document.getElementById('cfgNamaSekolah').value, 
       AlamatSekolah: document.getElementById('cfgAlamatSekolah').value, 
       KepalaLab: document.getElementById('cfgKepalaLab').value, 
-      NIPKepalaLab: document.getElementById('cfgNIPKepalaLab').value,
-      WaLab1: document.getElementById('cfgWaLab1').value,
-      WaLab2: document.getElementById('cfgWaLab2').value
+      NIPKepalaLab: document.getElementById('cfgNIPKepalaLab').value
     };
     try { 
       const {data} = await supabaseClient.from('Pengaturan').select('id').limit(1).maybeSingle(); 
       if(data) await supabaseClient.from('Pengaturan').update(py).eq('id',data.id); 
       else await supabaseClient.from('Pengaturan').insert([py]); 
       loadData(); 
-      Swal.fire('Sukses','Pengaturan & Routing WA berhasil disimpan','success'); 
+      Swal.fire('Sukses', 'Pengaturan identitas sekolah berhasil disimpan', 'success'); 
+    } catch(err) { 
+      Swal.fire('Error', err.message, 'error'); 
+      endLoading(); 
+    }
+  }
+
+  async function handleAdminRoutingSubmit(e) {
+    e.preventDefault(); startLoading();
+    const selectedLab = document.getElementById('selectRoutingLab').value;
+    const waVal = document.getElementById('cfgWaInput').value.trim();
+
+    let py = {};
+    if(selectedLab === 'LAB-1') py.WaLab1 = waVal;
+    else if(selectedLab === 'LAB-2') py.WaLab2 = waVal;
+
+    try { 
+      const {data} = await supabaseClient.from('Pengaturan').select('*').limit(1).maybeSingle(); 
+      if(data) {
+        await supabaseClient.from('Pengaturan').update(py).eq('id', data.id);
+      } else {
+        await supabaseClient.from('Pengaturan').insert([py]);
+      }
+      loadData(); 
+      Swal.fire('Sukses', 'Nomor routing WhatsApp admin lab berhasil disimpan', 'success'); 
     } catch(err) { 
       Swal.fire('Error', err.message, 'error'); 
       endLoading(); 
