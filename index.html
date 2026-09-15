@@ -476,7 +476,7 @@
 <script>
   // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8UA';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let currentUser = null;
@@ -541,8 +541,6 @@
       document.getElementById('userDisplayRole').textContent = currentUser.role;
       applyRolePermissions();
       await loadData();
-      
-      // Update icon/logo di dashboard login jika ada
       updateLoginBrandLogo();
     } else {
       currentUser = null;
@@ -552,11 +550,11 @@
       document.getElementById('loginView').classList.remove('d-none');
       closeSidebar();
       
-      // Ambil data pengaturan sebentar untuk menampilkan logo di halaman login
       try {
-        const { data: cfg } = await supabaseClient.from('Pengaturan').select('*').limit(1).maybeSingle();
-        if(cfg && cfg.LogoUrl) {
-          dbData.pengaturan = cfg;
+        const { data: cfgList } = await supabaseClient.from('Pengaturan').select('*');
+        if(cfgList && cfgList.length > 0) {
+          dbData.pengaturan = {};
+          cfgList.forEach(item => { dbData.pengaturan[item.Key] = item.Value; });
           updateLoginBrandLogo();
         }
       } catch(e) {}
@@ -565,9 +563,9 @@
 
   function updateLoginBrandLogo() {
     const container = document.getElementById('loginBrandIconContainer');
-    const c = dbData.pengaturan;
-    if(c && c.LogoUrl) {
-      container.innerHTML = `<img src="${c.LogoUrl}" alt="Logo" style="width: 64px; height: 64px; object-fit: contain; border-radius: 16px;">`;
+    const logoVal = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || dbData.pengaturan['LogoUrl'];
+    if(logoVal && logoVal !== 'EMPTY' && logoVal.trim() !== '') {
+      container.innerHTML = `<img src="${logoVal}" alt="Logo" style="width: 64px; height: 64px; object-fit: contain; border-radius: 16px;">`;
     } else {
       container.innerHTML = `<i class="fa-solid fa-laptop-code fs-2" id="loginBrandDefaultIcon"></i>`;
     }
@@ -608,13 +606,21 @@
         supabaseClient.from('Data_Peminjaman').select('*'),
         supabaseClient.from('Data_PeminjamanLab').select('*'),
         supabaseClient.from('Users').select('*'),
-        supabaseClient.from('Pengaturan').select('*').limit(1).maybeSingle()
+        supabaseClient.from('Pengaturan').select('*')
       ]);
       dbData.aset = rAset.data || [];
       dbData.peminjaman = rPinjam.data || [];
       dbData.peminjamanLab = rLab.data || [];
       dbData.users = rUsers.data || [];
-      if(rConfig.data) dbData.pengaturan = rConfig.data;
+      
+      // Ubah array key-value dari tabel Pengaturan menjadi object JS agar mudah dipanggil
+      dbData.pengaturan = {};
+      if(rConfig.data) {
+        rConfig.data.forEach(item => {
+          dbData.pengaturan[item.Key] = item.Value;
+        });
+      }
+
       renderAllViews();
     } catch(e) { Swal.fire('Error Load', e.message, 'error'); }
     endLoading();
@@ -634,17 +640,19 @@
 
   function updateHeaderSettings() {
     const c = dbData.pengaturan;
-    document.getElementById('headerNamaSekolah').textContent = c.NamaSekolah || 'E-Labkomp';
-    document.getElementById('cfgNamaSekolah').value = c.NamaSekolah || '';
-    document.getElementById('cfgAlamatSekolah').value = c.AlamatSekolah || '';
-    document.getElementById('cfgKepalaLab').value = c.KepalaLab || '';
-    document.getElementById('cfgNIPKepalaLab').value = c.NIPKepalaLab || '';
-    document.getElementById('cfgLogoUrl').value = c.LogoUrl || '';
+    document.getElementById('headerNamaSekolah').textContent = c['NamaSekolah'] || 'E-Labkomp';
+    document.getElementById('cfgNamaSekolah').value = c['NamaSekolah'] || '';
+    document.getElementById('cfgAlamatSekolah').value = c['AlamatSekolah'] || '';
+    document.getElementById('cfgKepalaLab').value = c['KepalaLab'] || '';
+    document.getElementById('cfgNIPKepalaLab').value = c['NIPKepalaLab'] || '';
+    
+    const logoVal = c['URL Logo Sekolah (Link Gambar / Logo)'] || c['LogoUrl'] || '';
+    document.getElementById('cfgLogoUrl').value = (logoVal === 'EMPTY') ? '' : logoVal;
 
     // Render Logo di Header Utama
     const logoContainer = document.getElementById('headerLogoContainer');
-    if(c.LogoUrl) {
-      logoContainer.innerHTML = `<img src="${c.LogoUrl}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
+    if(logoVal && logoVal !== 'EMPTY' && logoVal.trim() !== '') {
+      logoContainer.innerHTML = `<img src="${logoVal}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
     } else {
       logoContainer.innerHTML = `<div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;"><i class="fa-solid fa-school fs-5"></i></div>`;
     }
@@ -969,22 +977,27 @@
 
   async function handlePengaturanSubmit(e) {
     e.preventDefault(); startLoading();
-    const py = { 
-      NamaSekolah: document.getElementById('cfgNamaSekolah').value, 
-      AlamatSekolah: document.getElementById('cfgAlamatSekolah').value, 
-      KepalaLab: document.getElementById('cfgKepalaLab').value, 
-      NIPKepalaLab: document.getElementById('cfgNIPKepalaLab').value,
-      LogoUrl: document.getElementById('cfgLogoUrl').value.trim()
-    };
-    try { 
-      const {data} = await supabaseClient.from('Pengaturan').select('id').limit(1).maybeSingle(); 
-      if(data) await supabaseClient.from('Pengaturan').update(py).eq('id',data.id); 
-      else await supabaseClient.from('Pengaturan').insert([py]); 
-      loadData(); 
-      Swal.fire('Sukses', 'Pengaturan identitas dan logo sekolah berhasil disimpan', 'success'); 
-    } catch(err) { 
-      Swal.fire('Error', err.message, 'error'); 
-      endLoading(); 
+    const namaSekolah = document.getElementById('cfgNamaSekolah').value;
+    const alamatSekolah = document.getElementById('cfgAlamatSekolah').value;
+    const kepalaLab = document.getElementById('cfgKepalaLab').value;
+    const nipKepalaLab = document.getElementById('cfgNIPKepalaLab').value;
+    const logoUrl = document.getElementById('cfgLogoUrl').value.trim();
+
+    try {
+      // Upsert tiap key ke tabel Pengaturan Key-Value
+      await Promise.all([
+        supabaseClient.from('Pengaturan').upsert({ Key: 'NamaSekolah', Value: namaSekolah }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'AlamatSekolah', Value: alamatSekolah }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'KepalaLab', Value: kepalaLab }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'NIPKepalaLab', Value: nipKepalaLab }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'URL Logo Sekolah (Link Gambar / Logo)', Value: logoUrl || 'EMPTY' }, { onConflict: 'Key' })
+      ]);
+
+      loadData();
+      Swal.fire('Sukses', 'Pengaturan berhasil disimpan ke database', 'success');
+    } catch(err) {
+      Swal.fire('Error', err.message, 'error');
+      endLoading();
     }
   }
 
@@ -1029,16 +1042,13 @@
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const sekolah = dbData.pengaturan.NamaSekolah || 'E-Labkomp';
-    const alamat = dbData.pengaturan.AlamatSekolah || '';
-    const logoUrl = dbData.pengaturan.LogoUrl || '';
+    const sekolah = dbData.pengaturan['NamaSekolah'] || 'E-Labkomp';
+    const alamat = dbData.pengaturan['AlamatSekolah'] || '';
+    const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || dbData.pengaturan['LogoUrl'] || '';
 
-    // Fungsi pembantu untuk membuat PDF setelah logo (jika ada) dimuat
     const generatePdfContent = (imgData) => {
-      let startYPos = 26;
       if (imgData) {
         try {
-          // Tambahkan logo di kiri atas (x: 14, y: 10, width: 14, height: 14)
           doc.addImage(imgData, 'JPEG', 14, 10, 14, 14);
           doc.setFontSize(16);
           doc.text(sekolah, 32, 16);
@@ -1109,8 +1119,7 @@
       }
     };
 
-    // Coba load gambar logo jika ada URL-nya
-    if (logoUrl) {
+    if (logoUrl && logoUrl !== 'EMPTY') {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.src = logoUrl;
