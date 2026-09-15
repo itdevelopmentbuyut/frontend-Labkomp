@@ -880,7 +880,7 @@
 
   function openModalPinjamLab() { document.getElementById('formPinjamLab').reset(); bsModalPinjamLab.show(); }
 
- async function handlePinjamLabSubmit(e) {
+async function handlePinjamLabSubmit(e) {
     e.preventDefault(); 
     startLoading();
     
@@ -950,6 +950,56 @@
         JamSelesai: jamSelesai, 
         Status: 'Pending' 
       };
+
+      // 2. Simpan data ke database Supabase
+      const { error: insertError } = await supabaseClient.from('Data_PeminjamanLab').insert([py]);
+      if (insertError) throw insertError;
+
+      bsModalPinjamLab.hide();
+      endLoading();
+      loadData();
+
+      // 3. Cari nomor WhatsApp Admin sesuai lab tujuan (LAB-1 atau LAB-2)
+      let targetWa = '';
+      const uLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
+      const uLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
+
+      if (labKodeVal === 'LAB-1') {
+        targetWa = (uLab1 && uLab1.WhatsApp) ? uLab1.WhatsApp : '';
+      } else if (labKodeVal === 'LAB-2') {
+        targetWa = (uLab2 && uLab2.WhatsApp) ? uLab2.WhatsApp : '';
+      }
+
+      // 4. Tampilkan Popup sukses dengan tombol aksi langsung ke WhatsApp Admin
+      if (targetWa) {
+        let msg = encodeURIComponent(`Halo Admin ${namaLabVal}, saya ${pjVal} ingin konfirmasi pengajuan booking lab untuk kegiatan "${kegiatanVal}" pada tanggal ${tglGuna} (${jamMulai} - ${jamSelesai}). ID Booking: ${idBooking}. Mohon persetujuannya, terima kasih.`);
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Booking Berhasil Diajukan!',
+          html: `Data booking Anda telah tersimpan dengan status <b>Pending</b>.<br><br>Silakan klik tombol di bawah untuk langsung terhubung ke WhatsApp Admin <b>${namaLabVal}</b> guna konfirmasi.`,
+          confirmButtonText: '<i class="fa-brands fa-whatsapp me-1"></i> Klik untuk WA Admin',
+          confirmButtonColor: '#25D366',
+          showCancelButton: true,
+          cancelButtonText: 'Tutup'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.open(`https://wa.me/${targetWa}?text=${msg}`, '_blank');
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: 'Booking Berhasil',
+          text: 'Pengajuan booking berhasil dikirim. (Catatan: Nomor WhatsApp untuk admin lab ini belum diatur di menu Pengaturan).'
+        });
+      }
+
+    } catch (err) {
+      endLoading();
+      Swal.fire('Error', err.message, 'error');
+    }
+  }
 
       // 2. Simpan data ke database Supabase
       const { error: insertError } = await supabaseClient.from('Data_PeminjamanLab').insert([py]);
