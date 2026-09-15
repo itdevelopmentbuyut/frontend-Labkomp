@@ -474,7 +474,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // 1. SUPABASE INIT 
+  // 1. SUPABASE INIT (Pastikan URL & Key Anda sudah benar)
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -490,7 +490,6 @@
     bsModalPinjamLab = new bootstrap.Modal(document.getElementById('modalPinjamLab'));
     setInterval(updateClock, 1000);
     checkLoginState();
-    mulaiRefreshDashboardRealtime();
   });
 
   function updateClock() {
@@ -509,39 +508,73 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
+  // LOGIKA LOGIN UTAMA YANG DIBERSIHKAN DARI KEBUNTUAN ASINKRON
   async function handleLoginSubmit(event) {
-    event.preventDefault(); startLoading();
+    event.preventDefault(); 
+    startLoading();
+    
     const u = document.getElementById('loginUsername').value.trim();
     const p = document.getElementById('loginPassword').value.trim();
+
     try {
-      const { data, error } = await supabaseClient.from('Users').select('*').eq('Username', u).eq('Password', p).maybeSingle();
+      // Query langsung ke tabel Users Supabase
+      const { data, error } = await supabaseClient
+        .from('Users')
+        .select('*')
+        .eq('Username', u)
+        .eq('Password', p)
+        .maybeSingle();
+
       endLoading();
-      if (error || !data) return Swal.fire('Gagal', 'Username atau Password salah', 'error');
+
+      if (error) {
+        console.error("Supabase Error:", error);
+        return Swal.fire('Error Database', error.message, 'error');
+      }
+
+      if (!data) {
+        return Swal.fire('Gagal Login', 'Username atau Password salah, atau akun tidak ditemukan.', 'error');
+      }
       
-      currentUser = { username: data.Username, nama: data.Nama, role: data.Role, LabKode: data.LabKode };
+      // Simpan session user yang valid
+      currentUser = { 
+        username: data.Username, 
+        nama: data.Nama || data.Username, 
+        role: data.Role || 'Admin Lab', 
+        LabKode: data.LabKode || '' 
+      };
+      
       localStorage.setItem('elabkomp_user', JSON.stringify(currentUser));
       checkLoginState();
+
     } catch(err) { 
       endLoading(); 
-      Swal.fire('Error', err.message, 'error'); 
+      console.error("System Exception:", err);
+      Swal.fire('Kritikal Error', err.message || 'Gagal menghubungi server.', 'error'); 
     }
   }
 
-  function handleLogout() { localStorage.removeItem('elabkomp_user'); checkLoginState(); }
+  function handleLogout() { 
+    localStorage.removeItem('elabkomp_user'); 
+    checkLoginState(); 
+  }
 
-  // FUNGSI UTAMA CHECK LOGIN ASLI (100% AMAN & BERSIH)
   function checkLoginState() {
     const saved = localStorage.getItem('elabkomp_user');
     if (saved) {
-      currentUser = JSON.parse(saved);
-      document.getElementById('loginView').classList.add('d-none');
-      document.getElementById('appView').classList.remove('d-none');
-      document.getElementById('sidebar').classList.remove('d-none');
-      document.getElementById('mainContent').classList.remove('no-sidebar');
-      document.getElementById('userDisplayName').textContent = currentUser.nama;
-      document.getElementById('userDisplayRole').textContent = currentUser.role;
-      applyRolePermissions();
-      loadData();
+      try {
+        currentUser = JSON.parse(saved);
+        document.getElementById('loginView').classList.add('d-none');
+        document.getElementById('appView').classList.remove('d-none');
+        document.getElementById('sidebar').classList.remove('d-none');
+        document.getElementById('mainContent').classList.remove('no-sidebar');
+        document.getElementById('userDisplayName').textContent = currentUser.nama;
+        document.getElementById('userDisplayRole').textContent = currentUser.role;
+        applyRolePermissions();
+        loadData();
+      } catch(e) {
+        handleLogout();
+      }
     } else {
       currentUser = null;
       document.getElementById('appView').classList.add('d-none');
@@ -572,6 +605,7 @@
     if (window.innerWidth <= 768) closeSidebar();
     if(m === 'barcode') { populateBarcodeSelects(); renderBarcodeLabels(); }
   }
+
   function switchSubTab(s) {
     document.getElementById('subPeminjamanBarang').classList.toggle('d-none', s !== 'peminjamanBarang');
     document.getElementById('subPeminjamanLab').classList.toggle('d-none', s !== 'peminjamanLab');
@@ -589,12 +623,12 @@
         supabaseClient.from('Users').select('*'),
         supabaseClient.from('Pengaturan').select('*')
       ]);
+      
       dbData.aset = rAset.data || [];
       dbData.peminjaman = rPinjam.data || [];
       dbData.peminjamanLab = rLab.data || [];
       dbData.users = rUsers.data || [];
       
-      // Mapping aman tabel pengaturan key-value milik database Anda
       dbData.pengaturan = {};
       if(rConfig.data) {
         rConfig.data.forEach(item => {
@@ -604,21 +638,19 @@
 
       renderAllViews();
     } catch(e) { 
-      // Jika terjadi error pada database non-kritis, tangkap agar login/load tabel utama tetap berjalan mulus
-      console.warn("Info load:", e.message);
+      console.warn("Info load data:", e.message);
     }
     endLoading();
   }
 
-  let realtimeTimer;
-  function mulaiRefreshDashboardRealtime() {
-    if(realtimeTimer) clearInterval(realtimeTimer);
-    realtimeTimer = setInterval(() => { if(currentUser && !document.querySelector('.modal.show')) loadData(); }, 60000);
-  }
-
   function renderAllViews() {
-    updateHeaderSettings(); renderDashboard(); renderAsetTable(); renderPinjamBarangTable();
-    renderPinjamLabTable(); populateSelectAvailableAset(); renderDashboardPeminjamanHariIni();
+    updateHeaderSettings(); 
+    renderDashboard(); 
+    renderAsetTable(); 
+    renderPinjamBarangTable();
+    renderPinjamLabTable(); 
+    populateSelectAvailableAset(); 
+    renderDashboardPeminjamanHariIni();
     renderDashboardJadwalBesok();
   }
 
@@ -637,7 +669,6 @@
     document.getElementById('cfgNIPKepalaLab').value = nipKepalaLab;
     document.getElementById('cfgLogoUrl').value = (logoUrl === 'EMPTY') ? '' : logoUrl;
 
-    // Render logo di header utama
     const logoContainer = document.getElementById('headerLogoContainer');
     if(logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
       logoContainer.innerHTML = `<img src="${logoUrl}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
@@ -702,7 +733,6 @@
     if(pList) pList.innerHTML = perh.length ? perh.slice(0,6).map(i => `<div class="d-flex justify-content-between align-items-center border-bottom py-2"><div><div class="fw-bold small text-dark">${i.KodeAset}</div><div class="text-muted small">${i.NamaBarang}</div></div><span class="badge ${i.Kondisi==='Rusak'?'bg-danger':'bg-warning text-dark'} px-2 py-1">${i.Kondisi}</span></div>`).join('') : '<small class="text-success">Semua aset aman</small>';
 
     renderDashboardLabStatus();
-
     document.getElementById('dashboardAdminTools').classList.toggle('d-none', !currentUser || currentUser.role !== 'Super Admin');
   }
 
@@ -721,19 +751,9 @@
       const perbaikanLab = labAssets.filter(a => a.Kondisi === 'Perlu Perbaikan').length;
       const rusakLab = labAssets.filter(a => a.Kondisi === 'Rusak').length;
       const dipinjamLab = labAssets.filter(a => a.Status === 'Dipinjam').length;
-
       let hasDamage = (rusakLab > 0 || perbaikanLab > 0);
 
-      html += `
-        <div class="border rounded-3 p-3 mb-3 bg-white shadow-sm">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <div class="fw-bold text-dark fs-6"><i class="fa-solid fa-desktop text-primary me-2"></i>${labName}</div>
-              <small class="text-muted" style="font-size: 12px;">${totalLab} aset &bull; ${baikLab} baik &bull; ${perbaikanLab} perbaikan &bull; ${rusakLab} rusak &bull; ${dipinjamLab} dipinjam</small>
-            </div>
-            ${hasDamage ? '<span class="badge bg-danger px-2.5 py-1.5" style="font-size:11px; font-weight:600;">Ada Kerusakan</span>' : '<span class="badge bg-success px-2.5 py-1.5" style="font-size:11px; font-weight:600;">Aman</span>'}
-          </div>
-      `;
+      html += `<div class="border rounded-3 p-3 mb-3 bg-white shadow-sm"><div class="d-flex justify-content-between align-items-center mb-3"><div><div class="fw-bold text-dark fs-6"><i class="fa-solid fa-desktop text-primary me-2"></i>${labName}</div><small class="text-muted" style="font-size: 12px;">${totalLab} aset &bull; ${baikLab} baik &bull; ${perbaikanLab} perbaikan &bull; ${rusakLab} rusak &bull; ${dipinjamLab} dipinjam</small></div>${hasDamage ? '<span class="badge bg-danger px-2.5 py-1.5" style="font-size:11px; font-weight:600;">Ada Kerusakan</span>' : '<span class="badge bg-success px-2.5 py-1.5" style="font-size:11px; font-weight:600;">Aman</span>'}</div>`;
 
       categories.forEach(cat => {
         const catAssets = labAssets.filter(a => (a.Kategori || '').toLowerCase() === cat.toLowerCase());
@@ -743,27 +763,10 @@
         const catRusak = catAssets.filter(a => a.Kondisi === 'Rusak').length;
         const catDipinjam = catAssets.filter(a => a.Status === 'Dipinjam').length;
 
-        html += `
-          <div class="d-flex justify-content-between align-items-center border rounded-2 p-2 mb-2 bg-light bg-opacity-50">
-            <div>
-              <div class="fw-bold text-dark mb-1" style="font-size: 13px;">${cat}</div>
-              <div class="d-flex align-items-center gap-1 flex-wrap">
-                <span class="badge bg-success text-white" style="font-size: 10px; padding: 3px 6px;">Baik ${catBaik}</span>
-                <span class="badge bg-warning text-dark" style="font-size: 10px; padding: 3px 6px;">Perbaikan ${catPerbaikan}</span>
-                <span class="badge bg-danger text-white" style="font-size: 10px; padding: 3px 6px;">Rusak ${catRusak}</span>
-                <span class="badge bg-secondary text-white" style="font-size: 10px; padding: 3px 6px;">Dipinjam ${catDipinjam}</span>
-              </div>
-            </div>
-            <div>
-              <span class="badge bg-primary text-white px-3 py-2 fw-bold" style="font-size: 12px; border-radius: 6px;">${catTotal} aset</span>
-            </div>
-          </div>
-        `;
+        html += `<div class="d-flex justify-content-between align-items-center border rounded-2 p-2 mb-2 bg-light bg-opacity-50"><div><div class="fw-bold text-dark mb-1" style="font-size: 13px;">${cat}</div><div class="d-flex align-items-center gap-1 flex-wrap"><span class="badge bg-success text-white" style="font-size: 10px; padding: 3px 6px;">Baik ${catBaik}</span><span class="badge bg-warning text-dark" style="font-size: 10px; padding: 3px 6px;">Perbaikan ${catPerbaikan}</span><span class="badge bg-danger text-white" style="font-size: 10px; padding: 3px 6px;">Rusak ${catRusak}</span><span class="badge bg-secondary text-white" style="font-size: 10px; padding: 3px 6px;">Dipinjam ${catDipinjam}</span></div></div><div><span class="badge bg-primary text-white px-3 py-2 fw-bold" style="font-size: 12px; border-radius: 6px;">${catTotal} aset</span></div></div>`;
       });
-
       html += `</div>`;
     });
-
     container.innerHTML = html;
   }
 
@@ -879,78 +882,45 @@
 
   async function handlePinjamLabSubmit(e) {
     e.preventDefault(); startLoading();
-    
     const sel = document.getElementById('labKode');
     const labKodeVal = sel.value;
     const tglGuna = document.getElementById('labTanggal').value;
     const jamMulai = document.getElementById('labMulai').value;
     const jamSelesai = document.getElementById('labSelesai').value;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(tglGuna);
-    selectedDate.setHours(0, 0, 0, 0);
-
-    const diffTime = selectedDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tglGuna); selectedDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 1) {
       endLoading();
-      return Swal.fire({
-        icon: 'warning',
-        title: 'Peringatan Tanggal',
-        text: 'Peminjaman lab hari ini tidak diizinkan! Peminjaman minimal untuk besok atau hari selanjutnya (H-1).'
-      });
+      return Swal.fire({ icon: 'warning', title: 'Peringatan Tanggal', text: 'Peminjaman minimal untuk besok atau hari selanjutnya (H-1).' });
     }
 
     try {
       const { data: existingBookings, error: checkError } = await supabaseClient
-        .from('Data_PeminjamanLab')
-        .select('*')
-        .eq('KodeLab', labKodeVal)
-        .eq('TanggalGuna', tglGuna)
-        .in('Status', ['Pending', 'Disetujui']);
-
+        .from('Data_PeminjamanLab').select('*').eq('KodeLab', labKodeVal).eq('TanggalGuna', tglGuna).in('Status', ['Pending', 'Disetujui']);
       if (checkError) throw checkError;
 
       let isBentrok = false;
-      if (existingBookings && existingBookings.length > 0) {
+      if (existingBookings) {
         for (let b of existingBookings) {
-          if (jamMulai < b.JamSelesai && jamSelesai > b.JamMulai) {
-            isBentrok = true;
-            break;
-          }
+          if (jamMulai < b.JamSelesai && jamSelesai > b.JamMulai) { isBentrok = true; break; }
         }
       }
 
       if (isBentrok) {
         endLoading();
-        return Swal.fire({
-          icon: 'error',
-          title: 'Jadwal Bentrok!',
-          text: 'Jadwal bertabrakan dengan peminjaman lain. Silakan cari waktu atau lab lain!'
-        });
+        return Swal.fire({ icon: 'error', title: 'Jadwal Bentrok!', text: 'Jadwal bertabrakan dengan peminjaman lain.' });
       }
 
-      const py = { 
-        IdPinjamLab: 'LBP-' + Date.now().toString().slice(-4), 
-        KodeLab: labKodeVal, 
-        NamaLab: sel.options[sel.selectedIndex].text, 
-        Kegiatan: document.getElementById('labKegiatan').value, 
-        PenanggungJawab: document.getElementById('labPJ').value, 
-        TanggalGuna: tglGuna, 
-        JamMulai: jamMulai, 
-        JamSelesai: jamSelesai, 
-        Status: 'Pending' 
-      };
-
+      const py = { IdPinjamLab: 'LBP-' + Date.now().toString().slice(-4), KodeLab: labKodeVal, NamaLab: sel.options[sel.selectedIndex].text, Kegiatan: document.getElementById('labKegiatan').value, PenanggungJawab: document.getElementById('labPJ').value, TanggalGuna: tglGuna, JamMulai: jamMulai, JamSelesai: jamSelesai, Status: 'Pending' };
       const { error: insertError } = await supabaseClient.from('Data_PeminjamanLab').insert([py]);
       if (insertError) throw insertError;
 
       bsModalPinjamLab.hide();
-      Swal.fire('Sukses', 'Pengajuan booking berhasil dikirim', 'success');
+      Swal.fire('Sukses', 'Booking berhasil dikirim', 'success');
       loadData();
-
     } catch (err) {
       endLoading();
       Swal.fire('Error', err.message, 'error');
@@ -958,28 +928,21 @@
   }
 
   async function handleStatusLab(id, st) { startLoading(); await supabaseClient.from('Data_PeminjamanLab').update({Status:st}).eq('IdPinjamLab',id); loadData(); }
-  async function handleArchiveLab(id) { const res=await Swal.fire({title:'Hapus Permanen?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_PeminjamanLab').delete().eq('IdPinjamLab',id); loadData();} }
+  async function handleArchiveLab(id) { const res=await Swal.fire({title:'Hapus Arsip?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_PeminjamanLab').delete().eq('IdPinjamLab',id); loadData();} }
   async function arsipkanBookingLama() { const res=await Swal.fire({title:'Bersihkan Data Selesai?', showCancelButton:true}); if(res.isConfirmed){ startLoading(); await supabaseClient.from('Data_PeminjamanLab').delete().eq('Status','Selesai'); loadData();} }
 
   async function handlePengaturanSubmit(e) {
     e.preventDefault(); startLoading();
-    const namaSekolah = document.getElementById('cfgNamaSekolah').value;
-    const alamatSekolah = document.getElementById('cfgAlamatSekolah').value;
-    const kepalaLab = document.getElementById('cfgKepalaLab').value;
-    const nipKepalaLab = document.getElementById('cfgNIPKepalaLab').value;
-    const logoUrl = document.getElementById('cfgLogoUrl').value.trim();
-
     try {
       await Promise.all([
-        supabaseClient.from('Pengaturan').upsert({ Key: 'NamaSekolah', Value: namaSekolah }, { onConflict: 'Key' }),
-        supabaseClient.from('Pengaturan').upsert({ Key: 'AlamatSekolah', Value: alamatSekolah }, { onConflict: 'Key' }),
-        supabaseClient.from('Pengaturan').upsert({ Key: 'KepalaLab', Value: kepalaLab }, { onConflict: 'Key' }),
-        supabaseClient.from('Pengaturan').upsert({ Key: 'NIPKepalaLab', Value: nipKepalaLab }, { onConflict: 'Key' }),
-        supabaseClient.from('Pengaturan').upsert({ Key: 'URL Logo Sekolah (Link Gambar / Logo)', Value: logoUrl || 'EMPTY' }, { onConflict: 'Key' })
+        supabaseClient.from('Pengaturan').upsert({ Key: 'NamaSekolah', Value: document.getElementById('cfgNamaSekolah').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'AlamatSekolah', Value: document.getElementById('cfgAlamatSekolah').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'KepalaLab', Value: document.getElementById('cfgKepalaLab').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'NIPKepalaLab', Value: document.getElementById('cfgNIPKepalaLab').value }, { onConflict: 'Key' }),
+        supabaseClient.from('Pengaturan').upsert({ Key: 'URL Logo Sekolah (Link Gambar / Logo)', Value: document.getElementById('cfgLogoUrl').value.trim() || 'EMPTY' }, { onConflict: 'Key' })
       ]);
-
       loadData();
-      Swal.fire('Sukses', 'Pengaturan berhasil disimpan ke database', 'success');
+      Swal.fire('Sukses', 'Pengaturan disimpan', 'success');
     } catch(err) {
       Swal.fire('Error', err.message, 'error');
       endLoading();
@@ -991,11 +954,10 @@
     const selectedLab = document.getElementById('selectRoutingLab').value;
     const waVal = document.getElementById('cfgWaInput').value.trim();
     const targetUname = (selectedLab === 'LAB-1') ? 'routing_lab1' : 'routing_lab2';
-
     try { 
       await supabaseClient.from('Users').update({ WhatsApp: waVal }).eq('Username', targetUname);
       loadData(); 
-      Swal.fire('Sukses', 'Nomor WhatsApp admin lab berhasil disimpan', 'success'); 
+      Swal.fire('Sukses', 'WhatsApp admin disimpan', 'success'); 
     } catch(err) { 
       Swal.fire('Error', err.message, 'error'); 
       endLoading(); 
@@ -1021,110 +983,29 @@
 
   function exportPDF(type) {
     if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
-      return Swal.fire('Error', 'Library jsPDF belum termuat dengan benar.', 'error');
+      return Swal.fire('Error', 'Library jsPDF belum termuat.', 'error');
     }
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const sekolah = dbData.pengaturan['NamaSekolah'] || 'E-Labkomp';
     const alamat = dbData.pengaturan['AlamatSekolah'] || '';
-    const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
-    const generatePdfContent = (imgData) => {
-      if (imgData) {
-        try {
-          doc.addImage(imgData, 'JPEG', 14, 10, 14, 14);
-          doc.setFontSize(16);
-          doc.text(sekolah, 32, 16);
-          doc.setFontSize(10);
-          doc.text(alamat, 32, 22);
-        } catch(e) {
-          doc.setFontSize(16);
-          doc.text(sekolah, 14, 15);
-          doc.setFontSize(10);
-          doc.text(alamat, 14, 21);
-        }
-      } else {
-        doc.setFontSize(16);
-        doc.text(sekolah, 14, 15);
-        doc.setFontSize(10);
-        doc.text(alamat, 14, 21);
-      }
+    doc.setFontSize(16); doc.text(sekolah, 14, 15);
+    doc.setFontSize(10); doc.text(alamat, 14, 21);
+    doc.line(14, 26, 196, 26);
 
-      doc.line(14, 26, 196, 26);
-
-      if (type === 'aset') {
-        doc.setFontSize(12);
-        doc.text('Laporan Master Data Aset Labkomp', 14, 34);
-        
-        const headers = [['Kode Aset', 'Nama Barang', 'Kategori', 'Kondisi', 'Lokasi', 'Status']];
-        const data = dbData.aset.map(i => [i.KodeAset, i.NamaBarang, i.Kategori, i.Kondisi, i.Lokasi, i.Status]);
-
-        doc.autoTable({
-          startY: 38,
-          head: headers,
-          body: data,
-          theme: 'grid',
-          headStyles: { fillColor: [37, 99, 235] }
-        });
-        doc.save('Laporan_Master_Aset.pdf');
-
-      } else if (type === 'peminjaman') {
-        doc.setFontSize(12);
-        doc.text('Laporan Peminjaman Barang Lab', 14, 34);
-
-        const headers = [['ID Pinjam', 'Kode Aset', 'Peminjam', 'Kelas', 'Tgl Pinjam', 'Status']];
-        const data = dbData.peminjaman.map(i => [i.IdPinjam, i.KodeAset, i.Peminjam, i.KelasInstansi, i.TanggalPinjam, i.Status]);
-
-        doc.autoTable({
-          startY: 38,
-          head: headers,
-          body: data,
-          theme: 'grid',
-          headStyles: { fillColor: [16, 185, 129] }
-        });
-        doc.save('Laporan_Peminjaman_Barang.pdf');
-
-      } else if (type === 'peminjamanLab') {
-        doc.setFontSize(12);
-        doc.text('Laporan Booking Ruang Lab', 14, 34);
-
-        const headers = [['ID Booking', 'Ruang Lab', 'Kegiatan', 'Penanggung Jawab', 'Tanggal', 'Status']];
-        const data = dbData.peminjamanLab.map(i => [i.IdPinjamLab, i.NamaLab, i.Kegiatan, i.PenanggungJawab, i.TanggalGuna, i.Status]);
-
-        doc.autoTable({
-          startY: 38,
-          head: headers,
-          body: data,
-          theme: 'grid',
-          headStyles: { fillColor: [245, 158, 11] }
-        });
-        doc.save('Laporan_Booking_Lab.pdf');
-      }
-    };
-
-    if (logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.src = logoUrl;
-      img.onload = function() {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          const dataURL = canvas.toDataURL('image/jpeg');
-          generatePdfContent(dataURL);
-        } catch(err) {
-          generatePdfContent(null);
-        }
-      };
-      img.onerror = function() {
-        generatePdfContent(null);
-      };
-    } else {
-      generatePdfContent(null);
+    if (type === 'aset') {
+      doc.text('Laporan Master Data Aset', 14, 34);
+      doc.autoTable({ startY: 38, head: [['Kode', 'Nama', 'Kategori', 'Kondisi', 'Lokasi', 'Status']], body: dbData.aset.map(i => [i.KodeAset, i.NamaBarang, i.Kategori, i.Kondisi, i.Lokasi, i.Status]), theme: 'grid' });
+      doc.save('Laporan_Aset.pdf');
+    } else if (type === 'peminjaman') {
+      doc.text('Laporan Peminjaman Barang', 14, 34);
+      doc.autoTable({ startY: 38, head: [['ID', 'Aset', 'Peminjam', 'Kelas', 'Tgl', 'Status']], body: dbData.peminjaman.map(i => [i.IdPinjam, i.KodeAset, i.Peminjam, i.KelasInstansi, i.TanggalPinjam, i.Status]), theme: 'grid' });
+      doc.save('Laporan_Peminjaman.pdf');
+    } else if (type === 'peminjamanLab') {
+      doc.text('Laporan Booking Lab', 14, 34);
+      doc.autoTable({ startY: 38, head: [['ID', 'Lab', 'Kegiatan', 'PJ', 'Tanggal', 'Status']], body: dbData.peminjamanLab.map(i => [i.IdPinjamLab, i.NamaLab, i.Kegiatan, i.PenanggungJawab, i.TanggalGuna, i.Status]), theme: 'grid' });
+      doc.save('Laporan_Booking.pdf');
     }
   }
 
