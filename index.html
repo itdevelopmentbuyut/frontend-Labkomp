@@ -868,7 +868,7 @@
 
       let waBtn = '-';
       if(targetWa) {
-        let msg = encodeURIComponent(`Halo Admin ${i.NamaLab}, saya ${i.PenanggungJawab} ingin konfirmasi booking lab untuk kegiatan "${i.Kegiatan}" pada tanggal ${i.TanggalGuna} (${i.JamMulai} - ${i.JamSelesai}). ID Booking: ${i.IdPinjamLab}`);
+        let msg = encodeURIComponent(`Assalamu'alaikum Admin ${i.NamaLab}, saya ${i.PenanggungJawab} ingin konfirmasi booking lab untuk kegiatan "${i.Kegiatan}" pada tanggal ${i.TanggalGuna} (${i.JamMulai} - ${i.JamSelesai}). ID Booking: ${i.IdPinjamLab}`);
         waBtn = `<a href="https://wa.me/${targetWa}?text=${msg}" target="_blank" class="btn btn-sm btn-success"><i class="fa-brands fa-whatsapp"></i> Chat WA Admin</a>`;
       } else {
         waBtn = `<small class="text-muted">No WA belum diatur</small>`;
