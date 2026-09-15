@@ -991,10 +991,8 @@ function exportPDF(type) {
     const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
     const buildPdf = (imgData) => {
-      let startX = 14;
       let textX = 14;
 
-      // Jika logo berhasil dimuat dan valid, tambahkan ke PDF
       if (imgData) {
         try {
           doc.addImage(imgData, 'JPEG', 14, 10, 14, 14);
@@ -1048,7 +1046,6 @@ function exportPDF(type) {
       }
     };
 
-    // Proses ambil gambar logo secara asinkron sebelum generate PDF
     if (logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
@@ -1059,8 +1056,13 @@ function exportPDF(type) {
           canvas.width = img.width;
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
+          
+          // Beri warna latar belakang putih bersih agar transparansi PNG tidak jadi hitam
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
           ctx.drawImage(img, 0, 0);
-          const dataURL = canvas.toDataURL('image/jpeg');
+          const dataURL = canvas.toDataURL('image/jpeg', 1.0);
           buildPdf(dataURL);
         } catch (err) {
           buildPdf(null);
