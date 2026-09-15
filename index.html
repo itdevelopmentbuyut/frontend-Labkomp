@@ -476,7 +476,7 @@
 <script>
   // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8UA';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
   let currentUser = null;
@@ -531,6 +531,16 @@
 
   async function checkLoginState() {
     const saved = localStorage.getItem('elabkomp_user');
+    
+    // Ambil data pengaturan terlebih dahulu secara aman untuk logo login
+    try {
+      const { data: cfgList } = await supabaseClient.from('Pengaturan').select('*');
+      if(cfgList && cfgList.length > 0) {
+        dbData.pengaturan = {};
+        cfgList.forEach(item => { dbData.pengaturan[item.Key] = item.Value; });
+      }
+    } catch(e) {}
+
     if (saved) {
       currentUser = JSON.parse(saved);
       document.getElementById('loginView').classList.add('d-none');
@@ -541,7 +551,6 @@
       document.getElementById('userDisplayRole').textContent = currentUser.role;
       applyRolePermissions();
       await loadData();
-      updateLoginBrandLogo();
     } else {
       currentUser = null;
       document.getElementById('appView').classList.add('d-none');
@@ -549,15 +558,7 @@
       document.getElementById('mainContent').classList.add('no-sidebar');
       document.getElementById('loginView').classList.remove('d-none');
       closeSidebar();
-      
-      try {
-        const { data: cfgList } = await supabaseClient.from('Pengaturan').select('*');
-        if(cfgList && cfgList.length > 0) {
-          dbData.pengaturan = {};
-          cfgList.forEach(item => { dbData.pengaturan[item.Key] = item.Value; });
-          updateLoginBrandLogo();
-        }
-      } catch(e) {}
+      updateLoginBrandLogo();
     }
   }
 
@@ -613,7 +614,6 @@
       dbData.peminjamanLab = rLab.data || [];
       dbData.users = rUsers.data || [];
       
-      // Ubah array key-value dari tabel Pengaturan menjadi object JS agar mudah dipanggil
       dbData.pengaturan = {};
       if(rConfig.data) {
         rConfig.data.forEach(item => {
@@ -649,7 +649,6 @@
     const logoVal = c['URL Logo Sekolah (Link Gambar / Logo)'] || c['LogoUrl'] || '';
     document.getElementById('cfgLogoUrl').value = (logoVal === 'EMPTY') ? '' : logoVal;
 
-    // Render Logo di Header Utama
     const logoContainer = document.getElementById('headerLogoContainer');
     if(logoVal && logoVal !== 'EMPTY' && logoVal.trim() !== '') {
       logoContainer.innerHTML = `<img src="${logoVal}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
@@ -984,7 +983,6 @@
     const logoUrl = document.getElementById('cfgLogoUrl').value.trim();
 
     try {
-      // Upsert tiap key ke tabel Pengaturan Key-Value
       await Promise.all([
         supabaseClient.from('Pengaturan').upsert({ Key: 'NamaSekolah', Value: namaSekolah }, { onConflict: 'Key' }),
         supabaseClient.from('Pengaturan').upsert({ Key: 'AlamatSekolah', Value: alamatSekolah }, { onConflict: 'Key' }),
@@ -1034,7 +1032,6 @@
     setTimeout(() => s.forEach((i,x) => { try{ JsBarcode(`#bc_${x}`, i.KodeAset, {format:"CODE128", width:1.5, height:40, displayValue:true, fontSize:12}); }catch(e){} }), 50);
   }
 
-  // FUNGSI EXPORT PDF DENGAN DUKUNGAN LOGO SEKOLAH
   function exportPDF(type) {
     if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
       return Swal.fire('Error', 'Library jsPDF belum termuat dengan benar.', 'error');
@@ -1119,7 +1116,7 @@
       }
     };
 
-    if (logoUrl && logoUrl !== 'EMPTY') {
+    if (logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.src = logoUrl;
