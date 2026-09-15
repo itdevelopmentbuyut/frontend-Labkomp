@@ -202,8 +202,8 @@
         </div>
         
         <div class="row g-3 mt-1">
-          <div class="col-lg-6"><div class="card card-custom p-3 h-100"><div class="fw-bold mb-3"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Perlu Perhatian <span class="badge bg-warning text-dark float-end" id="dashboardPerhatianCount">0</span></div><div id="dashboardPerhatianList"></div></div></div>
-          <div class="col-lg-6"><div class="card card-custom p-3 h-100"><div class="fw-bold mb-3"><i class="fa-solid fa-building text-primary me-2"></i>Status Laboratorium</div><div id="dashboardLabStatus"></div></div></div>
+          <div class="col-lg-6"><div class="card card-custom p-3 h-100"><div class="fw-bold mb-3 d-flex align-items-center justify-content-between"><div><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Perlu Perhatian <span class="text-muted small d-block" style="font-weight:normal; font-size:11px;">Aset yang membutuhkan pemeriksaan atau tindakan</span></div><span class="badge bg-warning text-dark fs-6" id="dashboardPerhatianCount">0</span></div><div id="dashboardPerhatianList"></div></div></div>
+          <div class="col-lg-6"><div class="card card-custom p-3 h-100"><div class="fw-bold mb-2"><i class="fa-solid fa-building text-primary me-2"></i>Status Laboratorium <span class="text-muted small d-block" style="font-weight:normal; font-size:11px;">Ringkasan kondisi ruang dan server</span></div><div id="dashboardLabStatus"></div></div></div>
         </div> 
 
         <div class="row g-3 mt-3">
@@ -604,7 +604,6 @@
     document.getElementById('cfgKepalaLab').value = c.KepalaLab || '';
     document.getElementById('cfgNIPKepalaLab').value = c.NIPKepalaLab || '';
     
-    // Ambil WhatsApp dari tabel Users (routing_lab1 & routing_lab2)
     const userLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
     const userLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
 
@@ -659,9 +658,71 @@
     const pList = document.getElementById('dashboardPerhatianList');
     const perh = aset.filter(x => x.Kondisi === 'Rusak' || x.Kondisi === 'Perlu Perbaikan');
     if(pCount) pCount.textContent = perh.length;
-    if(pList) pList.innerHTML = perh.length ? perh.slice(0,5).map(i => `<div class="d-flex justify-content-between border-bottom py-2"><div><div class="fw-bold small">${i.KodeAset}</div><div class="text-muted small">${i.NamaBarang}</div></div><span class="badge ${i.Kondisi==='Rusak'?'bg-danger':'bg-warning text-dark'}">${i.Kondisi}</span></div>`).join('') : '<small class="text-success">Semua aset aman</small>';
+    if(pList) pList.innerHTML = perh.length ? perh.slice(0,6).map(i => `<div class="d-flex justify-content-between align-items-center border-bottom py-2"><div><div class="fw-bold small text-dark">${i.KodeAset}</div><div class="text-muted small">${i.NamaBarang}</div></div><span class="badge ${i.Kondisi==='Rusak'?'bg-danger':'bg-warning text-dark'} px-2 py-1">${i.Kondisi}</span></div>`).join('') : '<small class="text-success">Semua aset aman</small>';
+
+    // Render Status Laboratorium Persis Seperti Gambar Referensi Anda
+    renderDashboardLabStatus();
 
     document.getElementById('dashboardAdminTools').classList.toggle('d-none', !currentUser || currentUser.role !== 'Super Admin');
+  }
+
+  function renderDashboardLabStatus() {
+    const container = document.getElementById('dashboardLabStatus');
+    if(!container) return;
+
+    // Kelompokkan berdasarkan Lokasi Lab (contoh: "Lab Komputer 1" dan "Lab Komputer 2", atau sesuaikan field Lokasi)
+    const labs = ['Lab Komputer 1', 'Lab Komputer 2'];
+    const categories = ['Komputer', 'Elektronik', 'Jaringan', 'Furniture', 'Lainnya'];
+
+    let html = '';
+    labs.forEach(labName => {
+      // Filter aset berdasarkan lokasi lab
+      const labAssets = dbData.aset.filter(a => (a.Lokasi || '').toLowerCase().includes(labName.toLowerCase()));
+      const totalLab = labAssets.length;
+      const baikLab = labAssets.filter(a => a.Kondisi === 'Baik').length;
+      const perbaikanLab = labAssets.filter(a => a.Kondisi === 'Perlu Perbaikan').length;
+      const rusakLab = labAssets.filter(a => a.Kondisi === 'Rusak').length;
+      const dipinjamLab = labAssets.filter(a => a.Status === 'Dipinjam').length;
+
+      let hasDamage = (rusakLab > 0 || perbaikanLab > 0);
+
+      html += `
+        <div class="border rounded-3 p-3 mb-3 bg-white">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="fw-bold text-dark fs-6"><i class="fa-solid fa-desktop text-primary me-1"></i> ${labName}</div>
+              <small class="text-muted">${totalLab} aset - ${baikLab} baik - ${perbaikanLab} perbaikan - ${rusakLab} rusak - ${dipinjamLab} dipinjam</small>
+            </div>
+            ${hasDamage ? '<span class="badge bg-danger px-2 py-1" style="font-size:11px;">Ada Kerusakan</span>' : '<span class="badge bg-success px-2 py-1" style="font-size:11px;">Aman</span>'}
+          </div>
+      `;
+
+      categories.forEach(cat => {
+        const catAssets = labAssets.filter(a => (a.Kategori || '').toLowerCase() === cat.toLowerCase());
+        const catTotal = catAssets.length;
+        const catBaik = catAssets.filter(a => a.Kondisi === 'Baik').length;
+        const catPerbaikan = catAssets.filter(a => a.Kondisi === 'Perlu Perbaikan').length;
+        const catRusak = catAssets.filter(a => a.Kondisi === 'Rusak').length;
+        const catDipinjam = catAssets.filter(a => a.Status === 'Dipinjam').length;
+
+        html += `
+          <div class="d-flex justify-content-between align-items-center border-top py-1.5 px-2 mt-1 bg-light rounded-2" style="font-size: 12px;">
+            <div class="fw-semibold text-dark">${cat}</div>
+            <div class="d-flex align-items-center gap-1">
+              <span class="badge bg-success text-white" style="font-size: 10px;">Baik ${catBaik}</span>
+              <span class="badge bg-warning text-dark" style="font-size: 10px;">Perbaikan ${catPerbaikan}</span>
+              <span class="badge bg-danger text-white" style="font-size: 10px;">Rusak ${catRusak}</span>
+              <span class="badge bg-secondary text-white" style="font-size: 10px;">Dipinjam ${catDipinjam}</span>
+              <span class="badge bg-primary text-white ms-2 px-2">${catTotal} aset</span>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+    });
+
+    container.innerHTML = html;
   }
 
   function renderDashboardPeminjamanHariIni() {
@@ -753,7 +814,6 @@
         else if(i.Status==='Selesai' || i.Status==='Ditolak') act = `<button class="btn btn-sm btn-outline-danger" onclick="handleArchiveLab('${i.IdPinjamLab}')">Hapus Arsip</button>`;
       }
 
-      // Ambil nomor WA routing dari tabel Users
       let targetWa = '';
       const uLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
       const uLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
@@ -763,7 +823,7 @@
 
       let waBtn = '-';
       if(targetWa) {
-        let msg = encodeURIComponent(`Assalamu'alaikum Admin ${i.NamaLab}, saya ${i.PenanggungJawab} ingin konfirmasi booking lab untuk kegiatan "${i.Kegiatan}" pada tanggal ${i.TanggalGuna} (${i.JamMulai} - ${i.JamSelesai}). ID Booking: ${i.IdPinjamLab}`);
+        let msg = encodeURIComponent(`Halo Admin ${i.NamaLab}, saya ${i.PenanggungJawab} ingin konfirmasi booking lab untuk kegiatan "${i.Kegiatan}" pada tanggal ${i.TanggalGuna} (${i.JamMulai} - ${i.JamSelesai}). ID Booking: ${i.IdPinjamLab}`);
         waBtn = `<a href="https://wa.me/${targetWa}?text=${msg}" target="_blank" class="btn btn-sm btn-success"><i class="fa-brands fa-whatsapp"></i> Chat WA Admin</a>`;
       } else {
         waBtn = `<small class="text-muted">No WA belum diatur</small>`;
