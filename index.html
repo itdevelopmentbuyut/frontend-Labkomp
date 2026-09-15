@@ -880,47 +880,121 @@
 
   function openModalPinjamLab() { document.getElementById('formPinjamLab').reset(); bsModalPinjamLab.show(); }
 
-  async function handlePinjamLabSubmit(e) {
-    e.preventDefault(); startLoading();
+ async function handlePinjamLabSubmit(e) {
+    e.preventDefault(); 
+    startLoading();
+    
     const sel = document.getElementById('labKode');
     const labKodeVal = sel.value;
+    const namaLabVal = sel.options[sel.selectedIndex].text;
+    const kegiatanVal = document.getElementById('labKegiatan').value.trim();
+    const pjVal = document.getElementById('labPJ').value.trim();
     const tglGuna = document.getElementById('labTanggal').value;
     const jamMulai = document.getElementById('labMulai').value;
     const jamSelesai = document.getElementById('labSelesai').value;
 
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(tglGuna); selectedDate.setHours(0, 0, 0, 0);
+    const today = new Date(); 
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tglGuna); 
+    selectedDate.setHours(0, 0, 0, 0);
     const diffDays = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 1) {
       endLoading();
-      return Swal.fire({ icon: 'warning', title: 'Peringatan Tanggal', text: 'Peminjaman minimal untuk besok atau hari selanjutnya (H-1).' });
+      return Swal.fire({ 
+        icon: 'warning', 
+        title: 'Peringatan Tanggal', 
+        text: 'Peminjaman minimal untuk besok atau hari selanjutnya (H-1). Pemesanan hari ini tidak diizinkan.' 
+      });
     }
 
     try {
+      // 1. Cek bentrok jadwal di database
       const { data: existingBookings, error: checkError } = await supabaseClient
-        .from('Data_PeminjamanLab').select('*').eq('KodeLab', labKodeVal).eq('TanggalGuna', tglGuna).in('Status', ['Pending', 'Disetujui']);
+        .from('Data_PeminjamanLab')
+        .select('*')
+        .eq('KodeLab', labKodeVal)
+        .eq('TanggalGuna', tglGuna)
+        .in('Status', ['Pending', 'Disetujui']);
+
       if (checkError) throw checkError;
 
       let isBentrok = false;
       if (existingBookings) {
         for (let b of existingBookings) {
-          if (jamMulai < b.JamSelesai && jamSelesai > b.JamMulai) { isBentrok = true; break; }
+          if (jamMulai < b.JamSelesai && jamSelesai > b.JamMulai) { 
+            isBentrok = true; 
+            break; 
+          }
         }
       }
 
       if (isBentrok) {
         endLoading();
-        return Swal.fire({ icon: 'error', title: 'Jadwal Bentrok!', text: 'Jadwal bertabrakan dengan peminjaman lain.' });
+        return Swal.fire({ 
+          icon: 'error', 
+          title: 'Jadwal Bentrok!', 
+          text: 'Jadwal bertabrakan dengan peminjaman lain pada jam tersebut di lab yang sama.' 
+        });
       }
 
-      const py = { IdPinjamLab: 'LBP-' + Date.now().toString().slice(-4), KodeLab: labKodeVal, NamaLab: sel.options[sel.selectedIndex].text, Kegiatan: document.getElementById('labKegiatan').value, PenanggungJawab: document.getElementById('labPJ').value, TanggalGuna: tglGuna, JamMulai: jamMulai, JamSelesai: jamSelesai, Status: 'Pending' };
+      const idBooking = 'LBP-' + Date.now().toString().slice(-4);
+      const py = { 
+        IdPinjamLab: idBooking, 
+        KodeLab: labKodeVal, 
+        NamaLab: namaLabVal, 
+        Kegiatan: kegiatanVal, 
+        PenanggungJawab: pjVal, 
+        TanggalGuna: tglGuna, 
+        JamMulai: jamMulai, 
+        JamSelesai: jamSelesai, 
+        Status: 'Pending' 
+      };
+
+      // 2. Simpan data ke database Supabase
       const { error: insertError } = await supabaseClient.from('Data_PeminjamanLab').insert([py]);
       if (insertError) throw insertError;
 
       bsModalPinjamLab.hide();
-      Swal.fire('Sukses', 'Booking berhasil dikirim', 'success');
+      endLoading();
       loadData();
+
+      // 3. Cari nomor WhatsApp Admin yang sesuai dengan Lab tujuan (LAB-1 atau LAB-2)
+      let targetWa = '';
+      const uLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
+      const uLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
+
+      if (labKodeVal === 'LAB-1') {
+        targetWa = (uLab1 && uLab1.WhatsApp) ? uLab1.WhatsApp : '';
+      } else if (labKodeVal === 'LAB-2') {
+        targetWa = (uLab2 && uLab2.WhatsApp) ? uLab2.WhatsApp : '';
+      }
+
+      // 4. Munculkan Popup SweetAlert interaktif untuk langsung mengarahkan ke WhatsApp Admin
+      if (targetWa) {
+        let msg = encodeURIComponent(`Halo Admin ${namaLabVal}, saya ${pjVal} ingin konfirmasi pengajuan booking lab untuk kegiatan "${kegiatanVal}" pada tanggal ${tglGuna} (${jamMulai} - ${jamSelesai}). ID Booking: ${idBooking}. Mohon persetujuannya, terima kasih.`);
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Booking Berhasil Diajukan!',
+          html: `Data booking Anda telah tersimpan dengan status <b>Pending</b>.<br><br>Silakan klik tombol di bawah untuk langsung konfirmasi ke WhatsApp Admin <b>${namaLabVal}</b>.`,
+          confirmButtonText: '<i class="fa-brands fa-whatsapp me-1"></i> Konfirmasi ke WA Admin',
+          confirmButtonColor: '#25D366',
+          showCancelButton: true,
+          cancelButtonText: 'Tutup'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.open(`https://wa.me/${targetWa}?text=${msg}`, '_blank');
+          }
+        });
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: 'Booking Berhasil',
+          text: 'Pengajuan booking berhasil dikirim. (Catatan: Nomor WhatsApp untuk admin lab ini belum dikonfigurasi di menu Pengaturan).'
+        });
+      }
+
     } catch (err) {
       endLoading();
       Swal.fire('Error', err.message, 'error');
