@@ -476,6 +476,7 @@
 <script>
   // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
+  const supabaseKey = '
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -491,7 +492,21 @@
     setInterval(updateClock, 1000);
     checkLoginState();
     mulaiRefreshDashboardRealtime();
+    
+    // Ambil data pengaturan di background untuk logo login
+    fetchPengaturanBackground();
   });
+
+  async function fetchPengaturanBackground() {
+    try {
+      const { data: cfgList } = await supabaseClient.from('Pengaturan').select('*');
+      if(cfgList && cfgList.length > 0) {
+        dbData.pengaturan = {};
+        cfgList.forEach(item => { dbData.pengaturan[item.Key] = item.Value; });
+        updateLoginBrandLogo();
+      }
+    } catch(e) {}
+  }
 
   function updateClock() {
     const now = new Date();
@@ -529,18 +544,9 @@
 
   function handleLogout() { localStorage.removeItem('elabkomp_user'); checkLoginState(); }
 
-  async function checkLoginState() {
+  // FUNGSI CHECK LOGIN ASLI YANG AMAN & STABIL TANPA BLOKIR ASINKRON
+  function checkLoginState() {
     const saved = localStorage.getItem('elabkomp_user');
-    
-    // Ambil data pengaturan terlebih dahulu secara aman untuk logo login
-    try {
-      const { data: cfgList } = await supabaseClient.from('Pengaturan').select('*');
-      if(cfgList && cfgList.length > 0) {
-        dbData.pengaturan = {};
-        cfgList.forEach(item => { dbData.pengaturan[item.Key] = item.Value; });
-      }
-    } catch(e) {}
-
     if (saved) {
       currentUser = JSON.parse(saved);
       document.getElementById('loginView').classList.add('d-none');
@@ -550,7 +556,7 @@
       document.getElementById('userDisplayName').textContent = currentUser.nama;
       document.getElementById('userDisplayRole').textContent = currentUser.role;
       applyRolePermissions();
-      await loadData();
+      loadData();
     } else {
       currentUser = null;
       document.getElementById('appView').classList.add('d-none');
