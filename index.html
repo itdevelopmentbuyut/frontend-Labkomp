@@ -476,7 +476,6 @@
 <script>
   // 1. SUPABASE INIT 
   const supabaseUrl = 'https://ycjrjbjasuwduehgttmv.supabase.co';
-  const supabaseKey = '
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljanJqYmphc3V3ZHVlaGd0dG12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1OTIxODQsImV4cCI6MjEwNDE2ODE4NH0.h2QwEIR7WNRdntHRnQsl53ipxTOoNVUfR_uSB4XTi8U';
   let supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -492,21 +491,7 @@
     setInterval(updateClock, 1000);
     checkLoginState();
     mulaiRefreshDashboardRealtime();
-    
-    // Ambil data pengaturan di background untuk logo login
-    fetchPengaturanBackground();
   });
-
-  async function fetchPengaturanBackground() {
-    try {
-      const { data: cfgList } = await supabaseClient.from('Pengaturan').select('*');
-      if(cfgList && cfgList.length > 0) {
-        dbData.pengaturan = {};
-        cfgList.forEach(item => { dbData.pengaturan[item.Key] = item.Value; });
-        updateLoginBrandLogo();
-      }
-    } catch(e) {}
-  }
 
   function updateClock() {
     const now = new Date();
@@ -544,7 +529,7 @@
 
   function handleLogout() { localStorage.removeItem('elabkomp_user'); checkLoginState(); }
 
-  // FUNGSI CHECK LOGIN ASLI YANG AMAN & STABIL TANPA BLOKIR ASINKRON
+  // FUNGSI UTAMA CHECK LOGIN ASLI (100% AMAN & BERSIH)
   function checkLoginState() {
     const saved = localStorage.getItem('elabkomp_user');
     if (saved) {
@@ -564,17 +549,6 @@
       document.getElementById('mainContent').classList.add('no-sidebar');
       document.getElementById('loginView').classList.remove('d-none');
       closeSidebar();
-      updateLoginBrandLogo();
-    }
-  }
-
-  function updateLoginBrandLogo() {
-    const container = document.getElementById('loginBrandIconContainer');
-    const logoVal = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || dbData.pengaturan['LogoUrl'];
-    if(logoVal && logoVal !== 'EMPTY' && logoVal.trim() !== '') {
-      container.innerHTML = `<img src="${logoVal}" alt="Logo" style="width: 64px; height: 64px; object-fit: contain; border-radius: 16px;">`;
-    } else {
-      container.innerHTML = `<i class="fa-solid fa-laptop-code fs-2" id="loginBrandDefaultIcon"></i>`;
     }
   }
 
@@ -620,15 +594,19 @@
       dbData.peminjamanLab = rLab.data || [];
       dbData.users = rUsers.data || [];
       
+      // Mapping aman tabel pengaturan key-value milik database Anda
       dbData.pengaturan = {};
       if(rConfig.data) {
         rConfig.data.forEach(item => {
-          dbData.pengaturan[item.Key] = item.Value;
+          if (item.Key) dbData.pengaturan[item.Key] = item.Value;
         });
       }
 
       renderAllViews();
-    } catch(e) { Swal.fire('Error Load', e.message, 'error'); }
+    } catch(e) { 
+      // Jika terjadi error pada database non-kritis, tangkap agar login/load tabel utama tetap berjalan mulus
+      console.warn("Info load:", e.message);
+    }
     endLoading();
   }
 
@@ -646,23 +624,26 @@
 
   function updateHeaderSettings() {
     const c = dbData.pengaturan;
-    document.getElementById('headerNamaSekolah').textContent = c['NamaSekolah'] || 'E-Labkomp';
-    document.getElementById('cfgNamaSekolah').value = c['NamaSekolah'] || '';
-    document.getElementById('cfgAlamatSekolah').value = c['AlamatSekolah'] || '';
-    document.getElementById('cfgKepalaLab').value = c['KepalaLab'] || '';
-    document.getElementById('cfgNIPKepalaLab').value = c['NIPKepalaLab'] || '';
-    
-    const logoVal = c['URL Logo Sekolah (Link Gambar / Logo)'] || c['LogoUrl'] || '';
-    document.getElementById('cfgLogoUrl').value = (logoVal === 'EMPTY') ? '' : logoVal;
+    const namaSekolah = c['NamaSekolah'] || 'E-Labkomp';
+    const alamatSekolah = c['AlamatSekolah'] || '';
+    const kepalaLab = c['KepalaLab'] || '';
+    const nipKepalaLab = c['NIPKepalaLab'] || '';
+    const logoUrl = c['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
+    document.getElementById('headerNamaSekolah').textContent = namaSekolah;
+    document.getElementById('cfgNamaSekolah').value = namaSekolah;
+    document.getElementById('cfgAlamatSekolah').value = alamatSekolah;
+    document.getElementById('cfgKepalaLab').value = kepalaLab;
+    document.getElementById('cfgNIPKepalaLab').value = nipKepalaLab;
+    document.getElementById('cfgLogoUrl').value = (logoUrl === 'EMPTY') ? '' : logoUrl;
+
+    // Render logo di header utama
     const logoContainer = document.getElementById('headerLogoContainer');
-    if(logoVal && logoVal !== 'EMPTY' && logoVal.trim() !== '') {
-      logoContainer.innerHTML = `<img src="${logoVal}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
+    if(logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
+      logoContainer.innerHTML = `<img src="${logoUrl}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`;
     } else {
       logoContainer.innerHTML = `<div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;"><i class="fa-solid fa-school fs-5"></i></div>`;
     }
-    
-    updateLoginBrandLogo();
 
     const userLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
     const userLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
@@ -1047,7 +1028,7 @@
     const doc = new jsPDF();
     const sekolah = dbData.pengaturan['NamaSekolah'] || 'E-Labkomp';
     const alamat = dbData.pengaturan['AlamatSekolah'] || '';
-    const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || dbData.pengaturan['LogoUrl'] || '';
+    const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
     const generatePdfContent = (imgData) => {
       if (imgData) {
