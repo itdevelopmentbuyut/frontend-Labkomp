@@ -79,23 +79,20 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-/* =====================================================
-       CSS PRINT A4 - FINAL FLUID FLOW (ANTI ANJLOK DI TENGAH)
+    /* =====================================================
+       CSS PRINT A4 - FINAL FLUID FLOW (STABIL & RAPI)
        ===================================================== */
     @media print {
       @page {
         size: A4 portrait;
         margin: 6mm;
       }
-      
       body * {
         visibility: hidden !important;
       }
-      
       #printArea, #printArea * {
         visibility: visible !important;
       }
-      
       #printArea {
         position: absolute !important;
         left: 0 !important;
@@ -105,16 +102,12 @@
         padding: 0 !important;
         background: #fff !important;
       }
-
-      /* Ubah grid menjadi kontainer biasa agar kartu mengalir natural tanpa sisa kosong */
       #barcodeGridContainer {
         display: block !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
       }
-
-      /* Atur kartu barcode menggunakan float left agar tersusun 3 kolom rapi dan mengalir ke atas */
       #barcodeGridContainer .barcode-card-item {
         float: left !important;
         width: 31.5% !important;
@@ -126,12 +119,9 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-
-      /* Hilangkan margin kanan pada kolom ke-3 agar pas rata kanan */
       #barcodeGridContainer .barcode-card-item:nth-child(3n) {
         margin-right: 0 !important;
       }
-
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
         width: 100% !important;
@@ -350,7 +340,7 @@
             <div class="col-md-6 d-none" id="wrapperSelectKategoriAset"><select id="selectKategoriBarcode" class="form-select" onchange="renderBarcodeLabels()"></select></div>
           </div>
           <div id="printArea" class="p-3 border rounded bg-white"><div id="barcodeGridContainer" class="barcode-grid"></div></div>
-          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="triggerCleanPrint()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
+          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
         </div>
       </div>
 
@@ -1310,13 +1300,13 @@
     const alamat = dbData.pengaturan['AlamatSekolah'] || '';
     const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
-    const buildPdf = (imgData) => {
+    const buildPdf = (imgData, imgWidth = 14, imgHeight = 14) => {
       let textX = 14;
 
       if (imgData) {
         try {
-          doc.addImage(imgData, 'PNG', 14, 10, 14, 14);
-          textX = 32; 
+          doc.addImage(imgData, 'PNG', 14, 10, imgWidth, imgHeight);
+          textX = 14 + imgWidth + 4; 
         } catch (e) {
           console.warn("Gagal merender logo ke PDF:", e);
         }
@@ -1382,16 +1372,28 @@
           
           ctx.drawImage(img, 0, 0);
           const dataURL = canvas.toDataURL('image/png');
-          buildPdf(dataURL);
+
+          // Hitung aspek rasio otomatis agar logo tidak penyok/gepeng
+          const maxWidth = 14;
+          const maxHeight = 14;
+          let imgWidth = maxWidth;
+          let imgHeight = (img.height * imgWidth) / img.width;
+
+          if (imgHeight > maxHeight) {
+            imgHeight = maxHeight;
+            imgWidth = (img.width * imgHeight) / img.height;
+          }
+
+          buildPdf(dataURL, imgWidth, imgHeight);
         } catch (err) {
-          buildPdf(null);
+          buildPdf(null, 14, 14);
         }
       };
       img.onerror = function() {
-        buildPdf(null);
+        buildPdf(null, 14, 14);
       };
     } else {
-      buildPdf(null);
+      buildPdf(null, 14, 14);
     }
   }
 
