@@ -79,193 +79,85 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-/* CSS PRINT POSISI PAS DI A4 & ANTI HALAMAN KOSONG ANTAR KATEGORI */
-    /* =====================================================
-     A4
-     ===================================================== */
-  @page {
-    size: A4 portrait;
-    margin: 8mm;
-  }
+/* =====================================================
+       CSS PRINT A4 - FINAL CLEAN
+       ===================================================== */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
 
-  /* =====================================================
-     RESET
-     ===================================================== */
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        overflow: visible !important;
+      }
 
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
+      /* Sembunyikan SEMUA elemen di dalam body secara total */
+      body * {
+        display: none !important;
+      }
 
-    background: #fff !important;
+      /* Tampilkan kembali HANYA #printArea dan seluruh anak di dalamnya */
+      #printArea, #printArea * {
+        display: block !important;
+        visibility: visible !important;
+      }
 
-    overflow: visible !important;
+      #printArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: #fff !important;
+        box-shadow: none !important;
+      }
 
-    display: block !important;
+      /* Barcode Grid Layout */
+      #barcodeGridContainer {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        column-gap: 6mm !important;
+        row-gap: 6mm !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        align-content: start !important;
+        align-items: start !important;
+      }
 
-    position: static !important;
+      /* Barcode Card Item */
+      #barcodeGridContainer .barcode-card-item {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 6px 4px !important;
+        border: 1px dashed #000 !important;
+        border-radius: 4px !important;
+        background: #fff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
 
-    transform: none !important;
-  }
-
-  /* =====================================================
-     SEMBUNYIKAN SEMUA ELEMEN BODY
-     DENGAN DISPLAY NONE, BUKAN VISIBILITY HIDDEN
-     
-     INI YANG MENGHILANGKAN HALAMAN KOSONG
-     ===================================================== */
-  body > * {
-    display: none !important;
-  }
-
-  /* =====================================================
-     HANYA PRINT AREA YANG DITAMPILKAN
-     ===================================================== */
-  body > #printArea {
-    display: block !important;
-
-    position: static !important;
-
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-
-    margin: 0 !important;
-    padding: 0 !important;
-
-    border: none !important;
-    border-radius: 0 !important;
-
-    box-shadow: none !important;
-
-    background: #fff !important;
-
-    transform: none !important;
-
-    overflow: visible !important;
-  }
-
-  /* =====================================================
-     ISI PRINT AREA
-     ===================================================== */
-  #printArea,
-  #printArea * {
-    visibility: visible !important;
-  }
-
-  /* =====================================================
-     BARCODE GRID
-     ===================================================== */
-  #barcodeGridContainer {
-
-    display: grid !important;
-
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr)) !important;
-
-    column-gap: 8mm !important;
-    row-gap: 8mm !important;
-
-    width: 100% !important;
-
-    height: auto !important;
-    min-height: 0 !important;
-
-    margin: 0 !important;
-    padding: 0 !important;
-
-    align-content: start !important;
-    align-items: start !important;
-
-    justify-content: start !important;
-    justify-items: stretch !important;
-
-    position: static !important;
-
-    transform: none !important;
-
-    float: none !important;
-  }
-
-  /* =====================================================
-     BARCODE CARD
-     ===================================================== */
-  #barcodeGridContainer .barcode-card-item {
-
-    display: block !important;
-
-    position: static !important;
-
-    width: auto !important;
-
-    height: auto !important;
-    min-height: 0 !important;
-
-    margin: 0 !important;
-    padding: 8px 6px !important;
-
-    border: 1px dashed #000 !important;
-    border-radius: 4px !important;
-
-    background: #fff !important;
-
-    box-shadow: none !important;
-
-    transform: none !important;
-
-    float: none !important;
-
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* =====================================================
-     CANVAS BARCODE
-     ===================================================== */
-  #barcodeGridContainer canvas {
-
-    display: block !important;
-
-    width: 100% !important;
-    max-width: 100% !important;
-
-    height: auto !important;
-
-    margin: 0 auto !important;
-    padding: 0 !important;
-
-    transform: none !important;
-  }
-
-  /* =====================================================
-     IMAGE BARCODE
-     ===================================================== */
-  #barcodeGridContainer img {
-
-    display: block !important;
-
-    width: 100% !important;
-    max-width: 100% !important;
-
-    height: auto !important;
-
-    margin: 0 auto !important;
-    padding: 0 !important;
-
-    transform: none !important;
-  }
-
-  /* =====================================================
-     PAKSA ELEMENT PERTAMA TIDAK PUNYA JARAK ATAS
-     ===================================================== */
-  #barcodeGridContainer > .barcode-card-item:first-child {
-    margin-top: 0 !important;
-    padding-top: 8px !important;
-  }
-}
+      /* Canvas & Image Barcode */
+      #barcodeGridContainer canvas,
+      #barcodeGridContainer img {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+      }
+    }
   </style>
 </head>
 <body>
