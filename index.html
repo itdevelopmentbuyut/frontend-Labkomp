@@ -79,55 +79,29 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-/* =====================================================
-       CSS PRINT A4 - 100% PRESISI TANPA RUANG KOSONG ATAS
+    /* =====================================================
+       CSS PRINT A4 - FINAL BERSIH DAN PRESISI
        ===================================================== */
     @media print {
       @page {
         size: A4 portrait;
-        margin: 6mm; /* Margin kertas A4 bersih */
+        margin: 6mm;
       }
-
-      /* Reset total dokumen */
-      html, body {
-        background: #ffffff !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-      }
-
-      /* Sembunyikan semua elemen kecuali printArea */
       body * {
         visibility: hidden !important;
       }
-
       #printArea, #printArea * {
         visibility: visible !important;
       }
-
-      /* Paksa printArea menempel mutlak di pojok kiri-atas kertas */
       #printArea {
-        display: block !important;
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
-        border: none !important;
         background: #fff !important;
-        box-shadow: none !important;
       }
-
-      /* Hapus semua kelas pembawa padding Bootstrap (.p-3, .border, dll) pada printArea */
-      #printArea.p-3, #printArea.border, #printArea.rounded, #printArea.bg-white {
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-      }
-
-      /* Grid 3 Kolom yang dimulai tepat di garis 0 margin atas */
       #barcodeGridContainer {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -137,32 +111,22 @@
         margin: 0 !important;
         padding: 0 !important;
         align-content: start !important;
-        justify-content: start !important;
       }
-
-      /* Kartu Barcode */
       #barcodeGridContainer .barcode-card-item {
-        display: block !important;
         width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
         padding: 5px 4mm !important;
         border: 1px dashed #000 !important;
-        border-radius: 4px !important;
         background: #fff !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-
-      /* Canvas & Gambar Barcode */
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
-        display: block !important;
         width: 100% !important;
         max-width: 100% !important;
         height: 26px !important;
+        display: block !important;
         margin: 0 auto !important;
-        padding: 0 !important;
       }
     }
   </style>
@@ -374,7 +338,7 @@
             <div class="col-md-6 d-none" id="wrapperSelectKategoriAset"><select id="selectKategoriBarcode" class="form-select" onchange="renderBarcodeLabels()"></select></div>
           </div>
           <div id="printArea" class="p-3 border rounded bg-white"><div id="barcodeGridContainer" class="barcode-grid"></div></div>
-          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
+          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="triggerCleanPrint()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
         </div>
       </div>
 
@@ -1421,6 +1385,21 @@
 
   function backupDataLokal() { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(dbData,null,2)],{type:'application/json'})); a.download='Backup.json'; a.click(); }
   function bukaBookingPendingAdmin() { switchMenu('peminjaman'); switchSubTab('peminjamanLab'); }
+
+  function triggerCleanPrint() {
+    const printArea = document.getElementById('printArea');
+    const originalParent = printArea.parentNode;
+    const nextSibling = printArea.nextSibling;
+
+    document.body.appendChild(printArea);
+    window.print();
+
+    if (nextSibling) {
+      originalParent.insertBefore(printArea, nextSibling);
+    } else {
+      originalParent.appendChild(printArea);
+    }
+  }
 </script>
 </body>
 </html>
