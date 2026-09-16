@@ -80,7 +80,7 @@
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
 /* =====================================================
-       CSS PRINT A4 - FINAL ABSOLUTE POSITIONING FIX
+       CSS PRINT A4 - FINAL ABSOLUTE ZERO-HEIGHT FIX
        ===================================================== */
     @media print {
       @page {
@@ -88,17 +88,21 @@
         margin: 8mm;
       }
 
-      /* Putus total layout web utama */
-      html, body {
+      /* Hentikan seluruh pengaruh tinggi layout web utama */
+      html, body, #appView, #menuBarcode, .card {
         background: #ffffff !important;
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
         height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         overflow: visible !important;
+        box-shadow: none !important;
+        border: none !important;
       }
 
-      /* Sembunyikan semua elemen di luar printArea secara total */
+      /* Sembunyikan semua elemen di luar printArea */
       body * {
         visibility: hidden !important;
       }
@@ -108,7 +112,7 @@
         visibility: visible !important;
       }
 
-      /* Cabut printArea dari alur dokumen flex/grid utama dan paku di pojok atas-kiri */
+      /* Paksa printArea benar-benar menempel di pojok kiri-atas halaman cetak */
       #printArea {
         display: block !important;
         position: absolute !important;
@@ -116,6 +120,7 @@
         top: 0 !important;
         width: 100% !important;
         height: auto !important;
+        min-height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         border: none !important;
@@ -124,7 +129,7 @@
         z-index: 999999 !important;
       }
 
-      /* Grid 3 Kolom yang rapat dan dimulai dari baris paling atas setiap halaman */
+      /* Grid 3 Kolom yang tersusun rapat mulai dari baris paling atas */
       #barcodeGridContainer {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -132,6 +137,8 @@
         column-gap: 5mm !important;
         row-gap: 5mm !important;
         width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         align-content: start !important;
@@ -143,6 +150,7 @@
         display: block !important;
         width: 100% !important;
         height: max-content !important;
+        min-height: 0 !important;
         margin: 0 !important;
         padding: 6px 4px !important;
         border: 1px dashed #000 !important;
@@ -152,7 +160,7 @@
         break-inside: avoid !important;
       }
 
-      /* Canvas dan Gambar Barcode */
+      /* Canvas & Gambar Barcode */
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
         display: block !important;
