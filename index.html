@@ -82,26 +82,19 @@
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
     /* =====================================================
-       CSS PRINT MUTLAK: SEMUA DIBINASAKAN KECUALI #printArea
+       CSS PRINT AMAN & BERSIH
        ===================================================== */
     @media print {
       @page {
         size: A4 portrait;
         margin: 8mm;
       }
-
-      /* Sembunyikan seluruh elemen dalam body secara total tanpa kecuali */
       body * {
         visibility: hidden !important;
-        display: none !important;
       }
-
-      /* Hanya tampilkan #printArea dan isinya secara mutlak */
       #printArea, #printArea * {
         visibility: visible !important;
-        display: block !important;
       }
-
       #printArea {
         position: absolute !important;
         left: 0 !important;
@@ -111,7 +104,6 @@
         padding: 0 !important;
         background: #fff !important;
       }
-
       #barcodeGridContainer {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -119,7 +111,6 @@
         row-gap: 6mm !important;
         width: 100% !important;
       }
-
       #barcodeGridContainer .barcode-card-item {
         display: block !important;
         padding: 6px 4px !important;
@@ -128,18 +119,15 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-
       #barcodeGridContainer .bc-title {
         font-size: 10px !important;
         font-weight: bold !important;
         color: #000 !important;
       }
-
       #barcodeGridContainer .bc-subtitle {
         font-size: 8px !important;
         color: #000 !important;
       }
-
       #barcodeGridContainer canvas, #barcodeGridContainer img {
         display: block !important;
         width: 100% !important;
@@ -752,6 +740,7 @@
     document.getElementById('dashboardAdminTools').classList.toggle('d-none', !currentUser || currentUser.role !== 'Super Admin');
   }
 
+  /* Mengembalikan fungsi Status Laboratorium sesuai instruksi awal */
   function renderDashboardLabStatus() {
     const container = document.getElementById('dashboardLabStatus');
     if(!container) return;
