@@ -740,7 +740,7 @@
     document.getElementById('dashboardAdminTools').classList.toggle('d-none', !currentUser || currentUser.role !== 'Super Admin');
   }
 
-  /* Mengembalikan fungsi Status Laboratorium sesuai instruksi awal */
+  /* Status Laboratorium dikembalikan persis sesuai instruksi */
   function renderDashboardLabStatus() {
     const container = document.getElementById('dashboardLabStatus');
     if(!container) return;
