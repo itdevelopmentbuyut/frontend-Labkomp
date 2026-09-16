@@ -82,19 +82,70 @@
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
     /* =====================================================
-       CSS PRINT AMAN & ANTI-MELUBER
+       CSS PRINT MUTLAK: SEMUA DIBINASAKAN KECUALI #printArea
        ===================================================== */
     @media print {
       @page {
         size: A4 portrait;
         margin: 8mm;
       }
-      body {
+
+      /* Sembunyikan seluruh elemen dalam body secara total tanpa kecuali */
+      body * {
+        visibility: hidden !important;
+        display: none !important;
+      }
+
+      /* Hanya tampilkan #printArea dan isinya secara mutlak */
+      #printArea, #printArea * {
+        visibility: visible !important;
+        display: block !important;
+      }
+
+      #printArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
         background: #fff !important;
       }
-      /* Sembunyikan elemen aplikasi standar jika terdeteksi */
-      body > *:not(#printArea) {
-        display: none !important;
+
+      #barcodeGridContainer {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        column-gap: 6mm !important;
+        row-gap: 6mm !important;
+        width: 100% !important;
+      }
+
+      #barcodeGridContainer .barcode-card-item {
+        display: block !important;
+        padding: 6px 4px !important;
+        border: 1px dashed #000 !important;
+        background: #fff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      #barcodeGridContainer .bc-title {
+        font-size: 10px !important;
+        font-weight: bold !important;
+        color: #000 !important;
+      }
+
+      #barcodeGridContainer .bc-subtitle {
+        font-size: 8px !important;
+        color: #000 !important;
+      }
+
+      #barcodeGridContainer canvas, #barcodeGridContainer img {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 auto !important;
       }
     }
   </style>
@@ -310,7 +361,7 @@
             <div id="barcodeGridContainer" class="barcode-grid"></div>
           </div>
 
-          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="printPureBarcodeArea()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
+          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
         </div>
       </div>
 
@@ -902,77 +953,6 @@
         } catch (e) { console.warn(e); }
       });
     }, 50);
-  }
-
-  /* ==========================================================
-     SOLUSI FINAL: MENDIRIKAN JENDELA PRINT MURNI HANYA UNTUK PRINTAREA
-     Menggunakan iframe atau pop-up window khusus cetak sehingga 
-     TIDAK ADA SISA UI APLIKASI YANG BISA IKUT TERCETAK.
-     ========================================================== */
-  function printPureBarcodeArea() {
-    renderBarcodeLabels();
-    setTimeout(() => {
-      const printContents = document.getElementById('printArea').innerHTML;
-      
-      // Buat iframe tersembunyi untuk mencetak murni area barcode saja
-      let printFrame = document.createElement('iframe');
-      printFrame.style.position = 'fixed';
-      printFrame.style.top = '0';
-      printFrame.style.left = '0';
-      printFrame.style.width = '0';
-      printFrame.style.height = '0';
-      printFrame.style.border = 'none';
-      document.body.appendChild(printFrame);
-
-      const frameDoc = printFrame.contentWindow ? printFrame.contentWindow : printFrame.contentDocument.defaultView;
-      printFrame.contentDocument.open();
-      printFrame.contentDocument.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Cetak Label Barcode</title>
-          <style>
-            @page { size: A4 portrait; margin: 8mm; }
-            body { font-family: sans-serif; margin: 0; padding: 0; background: #fff; }
-            .barcode-grid {
-              display: grid !important;
-              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-              column-gap: 6mm !important;
-              row-gap: 6mm !important;
-              width: 100% !important;
-            }
-            .barcode-card-item {
-              display: block !important;
-              padding: 6px 4px !important;
-              border: 1px dashed #000 !important;
-              border-radius: 4px !important;
-              background: #fff !important;
-              text-align: center !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            .bc-title { font-size: 10px !important; font-weight: bold !important; color: #000 !important; margin-bottom: 1px; }
-            .bc-subtitle { font-size: 8px !important; color: #000 !important; margin-bottom: 3px; }
-            canvas, img { display: block !important; width: 100% !important; max-width: 100% !important; height: auto !important; margin: 0 auto !important; }
-          </style>
-        </head>
-        <body>
-          <div class="barcode-grid">
-            ${printContents}
-          </div>
-        </body>
-        </html>
-      `);
-      printFrame.contentDocument.close();
-
-      setTimeout(() => {
-        printFrame.contentWindow.focus();
-        printFrame.contentWindow.print();
-        setTimeout(() => {
-          document.body.removeChild(printFrame);
-        }, 1000);
-      }, 500);
-    }, 200);
   }
 
   function exportPDF(type) {
