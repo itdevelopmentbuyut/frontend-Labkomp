@@ -79,7 +79,7 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-    /* CSS PRINT POSISI PAS DI ATAS (Mencegah barcode menggantung di tengah/bawah) */
+    /* CSS PRINT POSISI PAS DI ATAS */
     @media print {
       @page { size: A4 portrait; margin: 8mm; }
       * { float: none !important; }
@@ -547,6 +547,23 @@
     else { pwd.type = 'password'; icon.className = 'fa-solid fa-eye'; }
   }
 
+  // Helper untuk format tanggal Indonesia (YYYY-MM-DD -> DD/MM/YYYY atau Nama Bulan)
+  function formatDateIndo(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parts[2];
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      if (months[monthIndex]) {
+        return `${day} ${months[monthIndex]} ${year}`;
+      }
+      return `${day}/${parts[1]}/${year}`;
+    }
+    return dateStr;
+  }
+
   async function handleLoginSubmit(event) {
     event.preventDefault(); 
     startLoading();
@@ -744,24 +761,28 @@
     let html = '';
 
     if (m1Mulai && m1Selesai) {
+      const fMulai1 = formatDateIndo(m1Mulai);
+      const fSelesai1 = formatDateIndo(m1Selesai);
       html += `
         <div class="alert alert-warning border-start border-warning border-4 shadow-sm mb-2 p-3 d-flex align-items-start gap-3">
           <i class="fa-solid fa-triangle-exclamation text-warning fs-4 mt-1"></i>
           <div>
             <h6 class="fw-bold mb-1 text-dark">Informasi Pemeliharaan Lab Komputer 1 (Banin)</h6>
-            <p class="mb-0 small text-secondary">Diberitahukan kepada para guru bahwasanya <b>Lab Komputer 1 (Banin)</b> belum bisa digunakan pada tanggal <b>${m1Mulai}</b> s.d. <b>${m1Selesai}</b> karena sedang maintenance perbaikan pada <i>${m1Ket || 'perawatan perangkat'}</i>.</p>
+            <p class="mb-0 small text-secondary">Diberitahukan kepada para guru bahwasanya <b>Lab Komputer 1 (Banin)</b> belum bisa digunakan pada tanggal <b>${fMulai1}</b> s.d. <b>${fSelesai1}</b> karena sedang maintenance perbaikan pada <i>${m1Ket || 'perawatan perangkat'}</i>.</p>
           </div>
         </div>
       `;
     }
 
     if (m2Mulai && m2Selesai) {
+      const fMulai2 = formatDateIndo(m2Mulai);
+      const fSelesai2 = formatDateIndo(m2Selesai);
       html += `
         <div class="alert alert-warning border-start border-warning border-4 shadow-sm mb-2 p-3 d-flex align-items-start gap-3">
           <i class="fa-solid fa-triangle-exclamation text-warning fs-4 mt-1"></i>
           <div>
             <h6 class="fw-bold mb-1 text-dark">Informasi Pemeliharaan Lab Komputer 2 (Banat)</h6>
-            <p class="mb-0 small text-secondary">Diberitahukan kepada para guru bahwasanya <b>Lab Komputer 2 (Banat)</b> belum bisa digunakan pada tanggal <b>${m2Mulai}</b> s.d. <b>${m2Selesai}</b> karena sedang maintenance perbaikan pada <i>${m2Ket || 'perawatan perangkat'}</i>.</p>
+            <p class="mb-0 small text-secondary">Diberitahukan kepada para guru bahwasanya <b>Lab Komputer 2 (Banat)</b> belum bisa digunakan pada tanggal <b>${fMulai2}</b> s.d. <b>${fSelesai2}</b> karena sedang maintenance perbaikan pada <i>${m2Ket || 'perawatan perangkat'}</i>.</p>
           </div>
         </div>
       `;
@@ -1023,7 +1044,7 @@
         return Swal.fire({
           icon: 'error',
           title: 'Lab Sedang Maintenance!',
-          text: `Mohon maaf, ${namaLabVal} sedang dalam jadwal pemeliharaan (${maintKet || 'perbaikan'}) pada tanggal ${maintMulai} s.d. ${maintSelesai}. Booking ditolak.`
+          text: `Mohon maaf, ${namaLabVal} sedang dalam jadwal pemeliharaan (${maintKet || 'perbaikan'}) pada tanggal ${formatDateIndo(maintMulai)} s.d. ${formatDateIndo(maintSelesai)}. Booking ditolak.`
         });
       }
     }
