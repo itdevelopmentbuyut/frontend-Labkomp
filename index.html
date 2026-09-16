@@ -1300,7 +1300,7 @@
     }, 50);
   }
 
-  function exportPDF(type) {
+function exportPDF(type) {
     if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
       return Swal.fire('Error', 'Library jsPDF belum termuat.', 'error');
     }
@@ -1310,17 +1310,101 @@
     const alamat = dbData.pengaturan['AlamatSekolah'] || '';
     const logoUrl = dbData.pengaturan['URL Logo Sekolah (Link Gambar / Logo)'] || '';
 
-    const buildPdf = (imgData) => {
+    const buildPdf = (imgData, imgWidth = 14, imgHeight = 14) => {
       let textX = 14;
 
       if (imgData) {
         try {
-          doc.addImage(imgData, 'PNG', 14, 10, 14, 14);
-          textX = 32; 
+          doc.addImage(imgData, 'PNG', 14, 10, imgWidth, imgHeight);
+          textX = 14 + imgWidth + 4; 
         } catch (e) {
           console.warn("Gagal merender logo ke PDF:", e);
         }
       }
+
+      doc.setFontSize(16);
+      doc.text(sekolah, textX, 16);
+      doc.setFontSize(10);
+      doc.text(alamat, textX, 22);
+      doc.line(14, 28, 196, 28);
+
+      if (type === 'aset') {
+        doc.setFontSize(12);
+        doc.text('Laporan Master Data Aset', 14, 36);
+        doc.autoTable({ 
+          startY: 40, 
+          head: [['Kode', 'Nama', 'Kategori', 'Kondisi', 'Lokasi', 'Status']], 
+          body: dbData.aset.map(i => [i.KodeAset, i.NamaBarang, i.Kategori, i.Kondisi, i.Lokasi, i.Status]), 
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235] }
+        });
+        doc.save('Laporan_Aset.pdf');
+
+      } else if (type === 'peminjaman') {
+        doc.setFontSize(12);
+        doc.text('Laporan Peminjaman Barang', 14, 36);
+        doc.autoTable({ 
+          startY: 40, 
+          head: [['ID', 'Aset', 'Peminjam', 'Kelas', 'Tgl', 'Status']], 
+          body: dbData.peminjaman.map(i => [i.IdPinjam, i.KodeAset, i.Peminjam, i.KelasInstansi, i.TanggalPinjam, i.Status]), 
+          theme: 'grid',
+          headStyles: { fillColor: [16, 185, 129] }
+        });
+        doc.save('Laporan_Peminjaman.pdf');
+
+      } else if (type === 'peminjamanLab') {
+        doc.setFontSize(12);
+        doc.text('Laporan Booking Lab', 14, 36);
+        doc.autoTable({ 
+          startY: 40, 
+          head: [['ID', 'Lab', 'Kegiatan', 'PJ', 'Tanggal', 'Status']], 
+          body: dbData.peminjamanLab.map(i => [i.IdPinjamLab, i.NamaLab, i.Kegiatan, i.PenanggungJawab, i.TanggalGuna, i.Status]), 
+          theme: 'grid',
+          headStyles: { fillColor: [245, 158, 11] }
+        });
+        doc.save('Laporan_Booking.pdf');
+      }
+    };
+
+    if (logoUrl && logoUrl !== 'EMPTY' && logoUrl.trim() !== '') {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.src = logoUrl;
+      img.onload = function() {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          const dataURL = canvas.toDataURL('image/png');
+
+          const maxHeight = 14; 
+          const ratio = img.width / img.height;
+          let imgHeight = maxHeight;
+          let imgWidth = imgHeight * ratio;
+
+          const maxWidth = 40;
+          if (imgWidth > maxWidth) {
+            imgWidth = maxWidth;
+            imgHeight = imgWidth / ratio;
+          }
+
+          buildPdf(dataURL, imgWidth, imgHeight);
+        } catch (err) {
+          buildPdf(null, 14, 14);
+        }
+      };
+      img.onerror = function() {
+        buildPdf(null, 14, 14);
+      };
+    } else {
+      buildPdf(null, 14, 14);
+    }
+  }
 
       doc.setFontSize(16);
       doc.text(sekolah, textX, 16);
