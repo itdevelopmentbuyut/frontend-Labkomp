@@ -80,7 +80,7 @@
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
 /* =====================================================
-       CSS PRINT A4 - FINAL STABLE (BARCODE MUNCUL & POSISI DI ATAS)
+       CSS PRINT A4 - FINAL ABSOLUTE POSITIONING FIX
        ===================================================== */
     @media print {
       @page {
@@ -88,32 +88,47 @@
         margin: 8mm;
       }
 
-      /* Sembunyikan seluruh elemen visual di halaman web */
+      /* Putus total layout web utama */
+      html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      /* Sembunyikan semua elemen di luar printArea secara total */
       body * {
         visibility: hidden !important;
       }
 
-      /* Tampilkan kembali HANYA area cetak dan isinya */
+      /* Tampilkan kembali printArea dan seluruh isinya */
       #printArea, #printArea * {
         visibility: visible !important;
       }
 
-      /* Tarik printArea ke pojok kiri-atas kertas secara mutlak */
+      /* Cabut printArea dari alur dokumen flex/grid utama dan paku di pojok atas-kiri */
       #printArea {
+        display: block !important;
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
+        border: none !important;
         background: #fff !important;
+        box-shadow: none !important;
         z-index: 999999 !important;
       }
 
-      /* Grid 3 Kolom yang tersusun rapat ke atas */
+      /* Grid 3 Kolom yang rapat dan dimulai dari baris paling atas setiap halaman */
       #barcodeGridContainer {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-auto-rows: max-content !important;
         column-gap: 5mm !important;
         row-gap: 5mm !important;
         width: 100% !important;
@@ -127,7 +142,7 @@
       #barcodeGridContainer .barcode-card-item {
         display: block !important;
         width: 100% !important;
-        height: auto !important;
+        height: max-content !important;
         margin: 0 !important;
         padding: 6px 4px !important;
         border: 1px dashed #000 !important;
@@ -137,7 +152,7 @@
         break-inside: avoid !important;
       }
 
-      /* Canvas & Gambar Barcode dijamin tampil sempurna */
+      /* Canvas dan Gambar Barcode */
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
         display: block !important;
