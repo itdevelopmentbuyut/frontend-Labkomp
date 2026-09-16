@@ -79,7 +79,7 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-/* CSS PRINT POSISI PAS DI A4 & KONSISTEN DI SEMUA HALAMAN */
+/* CSS PRINT POSISI PAS DI A4 & ANTI HALAMAN KOSONG ANTAR KATEGORI */
     @media print {
       @page {
         size: A4 portrait;
@@ -96,12 +96,12 @@
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
         display: block !important;
         position: static !important;
       }
 
-      /* Sembunyikan seluruh elemen web kecuali area cetak barcode */
+      /* Sembunyikan elemen non-cetak */
       body * {
         visibility: hidden !important;
       }
@@ -122,10 +122,11 @@
         background: #fff !important;
       }
 
-      /* Kunci Grid Barcode menjadi 3 kolom persis dengan ukuran stabil */
+      /* Grid flexibel agar baris langsung mengalir ke atas tanpa sisa kosong */
       #barcodeGridContainer {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
+        grid-auto-rows: max-content !important;
         column-gap: 4mm !important;
         row-gap: 4mm !important;
         width: 100% !important;
@@ -133,24 +134,25 @@
         padding: 0 !important;
       }
 
-      /* Kunci ukuran kartu barcode agar tidak merenggang di halaman tertentu */
+      /* Kunci ukuran kartu agar padat dan tidak melar ke bawah */
       #barcodeGridContainer .barcode-card-item {
         border: 1px dashed #000 !important;
         background: #fff !important;
         padding: 5px 4px !important;
-        height: auto !important;
+        height: max-content !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
 
-      /* Pastikan ukuran canvas barcode proporsional */
+      /* Batasi tinggi canvas barcode saat dicetak */
       #barcodeGridContainer canvas {
         width: 100% !important;
         max-width: 100% !important;
-        height: 30px !important;
+        height: 28px !important;
         display: block !important;
         margin: 0 auto !important;
       }
+    }
   </style>
 </head>
 <body>
