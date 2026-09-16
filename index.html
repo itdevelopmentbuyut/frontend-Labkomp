@@ -505,14 +505,14 @@
       <form id="formAset" onsubmit="handleAsetSubmit(event)">
         <div class="modal-body">
           <input type="hidden" id="asetIsEdit" value="false">
-          <div class="mb-3"><label class="form-label">Kode Aset</label><input type="text" id="asetKode" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Kode Aset / Barcode</label><input type="text" id="asetKode" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Nama Barang</label><input type="text" id="asetNama" class="form-control" required></div>
           <div class="mb-3">
             <label class="form-label">Kategori</label>
             <select id="asetKategori" class="form-select" required><option value="Komputer">Komputer</option><option value="Elektronik">Elektronik</option><option value="Jaringan">Jaringan</option><option value="Furniture">Furniture</option><option value="Lainnya">Lainnya</option></select>
           </div>
           <div class="mb-3"><label class="form-label">Spesifikasi</label><textarea id="asetSpesifikasi" class="form-control" rows="2"></textarea></div>
-          <div class="mb-3"><label class="form-label">Kondisi</label><select id="asetKondisi" class="form-select" required><option value="Baik">Baik</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Rusak">Rusak</option></select></div>
+          <div class="mb-3"><label class="form-label">Kondisi Saat Ini</label><select id="asetKondisi" class="form-select" required><option value="Baik">Baik</option><option value="Perlu Perbaikan">Perlu Perbaikan</option><option value="Rusak">Rusak</option></select></div>
           <div class="mb-3"><label class="form-label">Lokasi Lab</label><input type="text" id="asetLokasi" class="form-control" required></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary action-btn">Simpan</button></div>
