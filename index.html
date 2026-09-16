@@ -80,7 +80,7 @@
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
 /* =====================================================
-       CSS PRINT A4 - FINAL BOMB-PROOF (FIX BARCODE HILANG)
+       CSS PRINT A4 - ULTIMATE FIX (ANTI TURUN & BERSIH)
        ===================================================== */
     @media print {
       @page {
@@ -88,17 +88,29 @@
         margin: 8mm;
       }
 
-      /* Sembunyikan seluruh isi halaman secara visual tapi pertahankan strukturnya */
+      /* Reset total seluruh halaman dokumen */
+      html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+
+      /* Sembunyikan SEMUA elemen body secara total */
       body * {
         visibility: hidden !important;
+        display: none !important;
       }
 
-      /* Tampilkan kembali HANYA printArea dan seluruh komponen di dalamnya */
+      /* Tampilkan kembali HANYA printArea dan anak cucunya */
       #printArea, #printArea * {
         visibility: visible !important;
+        display: block !important;
       }
 
-      /* Paksa posisi printArea berada tepat di pojok kiri atas kertas */
+      /* Paksa printArea menempel di pojok kiri-atas halaman cetak */
       #printArea {
         position: absolute !important;
         left: 0 !important;
@@ -106,27 +118,29 @@
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        border: none !important;
         background: #fff !important;
-        z-index: 9999 !important;
+        box-shadow: none !important;
       }
 
-      /* Grid 3 Kolom yang rapi dan rapat ke atas */
+      /* Grid 3 Kolom yang dimulai tepat dari baris paling atas setiap halaman */
       #barcodeGridContainer {
         display: grid !important;
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        column-gap: 6mm !important;
-        row-gap: 6mm !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        grid-auto-rows: max-content !important;
+        column-gap: 5mm !important;
+        row-gap: 5mm !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         align-content: start !important;
+        justify-content: start !important;
       }
 
-      /* Kotak kartu barcode */
+      /* Kotak Kartu Barcode */
       #barcodeGridContainer .barcode-card-item {
-        display: block !important;
         width: 100% !important;
-        height: auto !important;
+        height: max-content !important;
         margin: 0 !important;
         padding: 6px 4px !important;
         border: 1px dashed #000 !important;
@@ -136,13 +150,13 @@
         break-inside: avoid !important;
       }
 
-      /* Canvas dan Gambar Barcode dijamin muncul sempurna */
+      /* Canvas dan Gambar Barcode */
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
-        display: block !important;
         width: 100% !important;
         max-width: 100% !important;
         height: auto !important;
+        display: block !important;
         margin: 0 auto !important;
         padding: 0 !important;
       }
