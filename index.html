@@ -79,17 +79,78 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-    /* CSS PRINT POSISI PAS DI A4 & ANTI HALAMAN KOSONG */
+/* CSS PRINT POSISI PAS DI A4 & KONSISTEN DI SEMUA HALAMAN */
     @media print {
-      @page { size: A4 portrait; margin: 10mm; }
-      body, html { background: #ffffff !important; margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; }
-      body * { visibility: hidden !important; }
-      #printArea, #printArea * { visibility: visible !important; }
-      #printArea { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; background: #fff !important; }
-      #barcodeGridContainer { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; column-gap: 4mm !important; row-gap: 4mm !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-      #barcodeGridContainer .barcode-card-item { border: 1px dashed #000 !important; background: #fff !important; padding: 6px 4px !important; page-break-inside: avoid !important; break-inside: avoid !important; }
-      #barcodeGridContainer canvas { width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; margin: 0 auto !important; }
-    }
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      
+      * {
+        float: none !important;
+        box-sizing: border-box !important;
+      }
+
+      body, html {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+        position: static !important;
+      }
+
+      /* Sembunyikan seluruh elemen web kecuali area cetak barcode */
+      body * {
+        visibility: hidden !important;
+      }
+
+      #printArea, #printArea * {
+        visibility: visible !important;
+      }
+
+      #printArea {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: #fff !important;
+      }
+
+      /* Kunci Grid Barcode menjadi 3 kolom persis dengan ukuran stabil */
+      #barcodeGridContainer {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        column-gap: 4mm !important;
+        row-gap: 4mm !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* Kunci ukuran kartu barcode agar tidak merenggang di halaman tertentu */
+      #barcodeGridContainer .barcode-card-item {
+        border: 1px dashed #000 !important;
+        background: #fff !important;
+        padding: 5px 4px !important;
+        height: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      /* Pastikan ukuran canvas barcode proporsional */
+      #barcodeGridContainer canvas {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 30px !important;
+        display: block !important;
+        margin: 0 auto !important;
+      }
   </style>
 </head>
 <body>
