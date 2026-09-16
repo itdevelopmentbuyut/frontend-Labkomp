@@ -79,20 +79,23 @@
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
-    /* =====================================================
-       CSS PRINT A4 - FINAL BERSIH DAN PRESISI
+/* =====================================================
+       CSS PRINT A4 - FINAL FLUID FLOW (ANTI ANJLOK DI TENGAH)
        ===================================================== */
     @media print {
       @page {
         size: A4 portrait;
         margin: 6mm;
       }
+      
       body * {
         visibility: hidden !important;
       }
+      
       #printArea, #printArea * {
         visibility: visible !important;
       }
+      
       #printArea {
         position: absolute !important;
         left: 0 !important;
@@ -102,24 +105,33 @@
         padding: 0 !important;
         background: #fff !important;
       }
+
+      /* Ubah grid menjadi kontainer biasa agar kartu mengalir natural tanpa sisa kosong */
       #barcodeGridContainer {
-        display: grid !important;
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        column-gap: 4mm !important;
-        row-gap: 4mm !important;
+        display: block !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
-        align-content: start !important;
       }
+
+      /* Atur kartu barcode menggunakan float left agar tersusun 3 kolom rapi dan mengalir ke atas */
       #barcodeGridContainer .barcode-card-item {
-        width: 100% !important;
+        float: left !important;
+        width: 31.5% !important;
+        margin-right: 2.5% !important;
+        margin-bottom: 4mm !important;
         padding: 5px 4mm !important;
         border: 1px dashed #000 !important;
         background: #fff !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
+
+      /* Hilangkan margin kanan pada kolom ke-3 agar pas rata kanan */
+      #barcodeGridContainer .barcode-card-item:nth-child(3n) {
+        margin-right: 0 !important;
+      }
+
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
         width: 100% !important;
