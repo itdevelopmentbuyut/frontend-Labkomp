@@ -80,14 +80,24 @@
     .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
     
 /* =====================================================
-       CSS PRINT A4 - PERFECT GRID ALIGNMENT
+       CSS PRINT A4 - 100% PRESISI TANPA RUANG KOSONG ATAS
        ===================================================== */
     @media print {
       @page {
         size: A4 portrait;
-        margin: 6mm; /* Sedikit dirapatkan agar 7-8 baris muat sempurna tanpa anjlok */
+        margin: 6mm; /* Margin kertas A4 bersih */
       }
 
+      /* Reset total dokumen */
+      html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+      }
+
+      /* Sembunyikan semua elemen kecuali printArea */
       body * {
         visibility: hidden !important;
       }
@@ -96,17 +106,28 @@
         visibility: visible !important;
       }
 
+      /* Paksa printArea menempel mutlak di pojok kiri-atas kertas */
       #printArea {
+        display: block !important;
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        border: none !important;
         background: #fff !important;
+        box-shadow: none !important;
       }
 
-      /* Kunci Grid 3 Kolom dengan jarak baris rapat agar tidak anjlok */
+      /* Hapus semua kelas pembawa padding Bootstrap (.p-3, .border, dll) pada printArea */
+      #printArea.p-3, #printArea.border, #printArea.rounded, #printArea.bg-white {
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+      }
+
+      /* Grid 3 Kolom yang dimulai tepat di garis 0 margin atas */
       #barcodeGridContainer {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -116,15 +137,16 @@
         margin: 0 !important;
         padding: 0 !important;
         align-content: start !important;
+        justify-content: start !important;
       }
 
-      /* Kunci kartu item barcode */
+      /* Kartu Barcode */
       #barcodeGridContainer .barcode-card-item {
         display: block !important;
         width: 100% !important;
         height: auto !important;
         margin: 0 !important;
-        padding: 5px 4px !important;
+        padding: 5px 4mm !important;
         border: 1px dashed #000 !important;
         border-radius: 4px !important;
         background: #fff !important;
@@ -132,13 +154,13 @@
         break-inside: avoid !important;
       }
 
-      /* Kunci ukuran canvas agar tinggi baris seragam */
+      /* Canvas & Gambar Barcode */
       #barcodeGridContainer canvas,
       #barcodeGridContainer img {
         display: block !important;
         width: 100% !important;
         max-width: 100% !important;
-        height: 26px !important; 
+        height: 26px !important;
         margin: 0 auto !important;
         padding: 0 !important;
       }
