@@ -340,7 +340,14 @@
             <div class="col-md-6 d-none" id="wrapperSelectKategoriAset"><select id="selectKategoriBarcode" class="form-select" onchange="renderBarcodeLabels()"></select></div>
           </div>
           <div id="printArea" class="p-3 border rounded bg-white"><div id="barcodeGridContainer" class="barcode-grid"></div></div>
-          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="triggerCleanPrint()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
+          <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <a href="https://frontend-labkom.vercel.app/#" target="_blank" class="btn btn-outline-secondary btn-sm">
+    <i class="fa-solid fa-external-link-alt me-1"></i> Buka Layar Penuh (Jika Cetak Macet di Google Sites)
+  </a>
+  <button class="btn btn-primary" onclick="triggerCleanPrint()">
+    <i class="fa-solid fa-print me-1"></i> Cetak Lembar Label
+  </button>
+</div>
         </div>
       </div>
 
