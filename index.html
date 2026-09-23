@@ -543,15 +543,33 @@
 <div class="modal fade" id="modalPinjamBarang" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title fw-bold">Peminjaman Barang</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Peminjaman Barang</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
       <form id="formPinjamBarang" onsubmit="handlePinjamBarangSubmit(event)">
         <div class="modal-body">
-          <div class="mb-3"><label class="form-label">Pilih Barang</label><select id="pinjamKodeAset" class="form-select" required></select></div>
-          <div class="mb-3"><label class="form-label">Nama Peminjam</label><input type="text" id="pinjamPeminjam" class="form-control" required></div>
-          <div class="mb-3"><label class="form-label">Kelas / Instansi</label><input type="text" id="pinjamKelas" class="form-control" required></div>
-          <div class="mb-3"><label class="form-label">Catatan</label><textarea id="pinjamCatatan" class="form-control" rows="2"></textarea></div>
+          <div class="mb-3">
+            <label class="form-label text-primary bg-primary text-white px-1">Pilih Barang (Hanya yang Tersedia)</label>
+            <select id="pinjamKodeAset" class="form-select" required></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nama Peminjam</label>
+            <input type="text" id="pinjamPeminjam" class="form-control" placeholder="Nama Siswa / Guru" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Kelas / Instansi / Jabatan</label>
+            <input type="text" id="pinjamKelas" class="form-control" placeholder="Contoh: XII RPL 1 / Guru Multimedia" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Catatan Kebijakan / Tujuan</label>
+            <textarea id="pinjamCatatan" class="form-control" rows="2" placeholder="Catatan keanggotaan/keperluan..."></textarea>
+          </div>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary action-btn">Simpan Transaksi</button></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary action-btn">Simpan Transaksi</button>
+        </div>
       </form>
     </div>
   </div>
@@ -1043,17 +1061,59 @@
     }).join('');
   }
 
+  function openModalPinjamBarang() { 
+    document.getElementById('formPinjamBarang').reset(); 
+    populateSelectAvailableAset(); 
+    bsModalPinjamBarang.show(); 
+  }
+
   function populateSelectAvailableAset() {
-    const s = document.getElementById('pinjamKodeAset'); s.innerHTML = '';
+    const s = document.getElementById('pinjamKodeAset'); 
+    s.innerHTML = '';
     const a = dbData.aset.filter(x => x.Status !== 'Dipinjam' && x.Kondisi !== 'Rusak');
-    a.length ? a.forEach(i => s.innerHTML += `<option value="${i.KodeAset}" data-nama="${i.NamaBarang}">${i.KodeAset} - ${i.NamaBarang}</option>`) : s.innerHTML = '<option value="">Kosong</option>';
+    
+    if (a.length > 0) {
+      a.forEach(i => {
+        s.innerHTML += `<option value="${i.KodeAset}" data-nama="${i.NamaBarang}">${i.KodeAset} - ${i.NamaBarang} (${i.Lokasi || '-'})</option>`;
+      });
+    } else {
+      s.innerHTML = '<option value="">Kosong / Tidak ada barang tersedia</option>';
+    }
   }
 
   async function handlePinjamBarangSubmit(e) {
-    e.preventDefault(); startLoading();
-    const sel = document.getElementById('pinjamKodeAset'), k = sel.value;
-    const py = { IdPinjam: 'PNM-'+Date.now().toString().slice(-4), KodeAset: k, NamaBarang: sel.options[sel.selectedIndex].getAttribute('data-nama'), Peminjam: document.getElementById('pinjamPeminjam').value, KelasInstansi: document.getElementById('pinjamKelas').value, Catatan: document.getElementById('pinjamCatatan').value, TanggalPinjam: new Date().toISOString().split('T')[0], Status: 'Dipinjam' };
-    try { await supabaseClient.from('Data_Peminjaman').insert([py]); await supabaseClient.from('Data_Labkomp').update({Status:'Dipinjam'}).eq('KodeAset',k); bsModalPinjamBarang.hide(); loadData(); } catch(err) { Swal.fire('Error',err.message,'error'); endLoading(); }
+    e.preventDefault(); 
+    startLoading();
+    
+    const sel = document.getElementById('pinjamKodeAset');
+    const k = sel.value;
+    
+    if (!k) {
+      endLoading();
+      return Swal.fire('Perhatian', 'Pilih barang terlebih dahulu', 'warning');
+    }
+
+    const py = { 
+      IdPinjam: 'PNM-' + Date.now().toString().slice(-4), 
+      KodeAset: k, 
+      NamaBarang: sel.options[sel.selectedIndex].getAttribute('data-nama'), 
+      Peminjam: document.getElementById('pinjamPeminjam').value.trim(), 
+      KelasInstansi: document.getElementById('pinjamKelas').value.trim(), 
+      Catatan: document.getElementById('pinjamCatatan').value.trim(), 
+      TanggalPinjam: new Date().toISOString().split('T')[0], 
+      Status: 'Dipinjam' 
+    };
+    
+    try { 
+      await supabaseClient.from('Data_Peminjaman').insert([py]); 
+      await supabaseClient.from('Data_Labkomp').update({Status: 'Dipinjam'}).eq('KodeAset', k); 
+      bsModalPinjamBarang.hide(); 
+      Swal.fire('Sukses', 'Transaksi peminjaman barang berhasil disimpan', 'success');
+      loadData(); 
+    } catch(err) { 
+      Swal.fire('Error', err.message, 'error'); 
+      endLoading(); 
+    }
   }
 
   async function handleKembalikanBarang(id, k) {
