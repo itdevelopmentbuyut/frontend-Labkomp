@@ -1377,7 +1377,7 @@ Syukron Jazakllah`;
       c.innerHTML += `
         <div class="barcode-card-item">
           <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 11px;" title="${i.NamaBarang}">${i.NamaBarang}</div>
-          <div class="text-muted mb-1" style="font-size: 10px;"><b>Lok:</b> ${i.Lokasi || '-'}</div>
+          <div class="text-muted mb-1" style="font-size: 10px;">Kat: ${i.Kategori || '-'} | Lok: ${i.Lokasi || '-'}</div>
           <canvas id="bc_${x}"></canvas>
         </div>
       `;
