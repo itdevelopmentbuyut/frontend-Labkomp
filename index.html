@@ -325,7 +325,7 @@
             <button class="btn btn-sm btn-outline-secondary" onclick="arsipkanBookingLama()"><i class="fa-solid fa-box-archive me-1"></i> Arsipkan Selesai Lama</button>
           </div>
           <div class="table-responsive">
-            <table class="table table-hover align-middle"><thead class="table-light"><tr><th>ID Booking</th><th>Ruang Lab</th><th>Kegiatan</th><th>PJ</th><th>Tanggal</th><th>Waktu</th><th>Status</th><th class="text-center">Konfirmasi WA</th><th class="text-center">Aksi</th></tr></thead><tbody id="tablePinjamLabBody"></tbody></table>
+            <table class="table table-hover align-middle"><thead class="table-light"><tr><th>ID Booking</th><th>Ruang Lab</th><th>Kegiatan</th><th>PJ</th><th>Tanggal</th><th>Waktu</th><th>Status</th><th class="text-center">Aksi</th></tr></thead><tbody id="tablePinjamLabBody"></tbody></table>
           </div>
         </div>
       </div>
@@ -340,14 +340,7 @@
             <div class="col-md-6 d-none" id="wrapperSelectKategoriAset"><select id="selectKategoriBarcode" class="form-select" onchange="renderBarcodeLabels()"></select></div>
           </div>
           <div id="printArea" class="p-3 border rounded bg-white"><div id="barcodeGridContainer" class="barcode-grid"></div></div>
-          <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-  <a href="https://frontend-labkomp.vercel.app/" target="_blank" class="btn btn-outline-secondary btn-sm">
-    <i class="fa-solid fa-external-link-alt me-1"></i> Klik link database aplikasi ini (Jika Tombol Cetak Tidak Berfungsi)
-  </a>
-  <button class="btn btn-primary" onclick="triggerCleanPrint()">
-    <i class="fa-solid fa-print me-1"></i> Cetak Lembar Label
-  </button>
-</div>
+          <div class="mt-3 text-end"><button class="btn btn-primary" onclick="triggerCleanPrint()"><i class="fa-solid fa-print me-1"></i> Cetak Lembar Label</button></div>
         </div>
       </div>
 
@@ -1070,7 +1063,7 @@
 
   function renderPinjamLabTable() {
     const t = document.getElementById('tablePinjamLabBody'); t.innerHTML = ''; const r = currentUser ? currentUser.role : 'Umum';
-    if(!dbData.peminjamanLab.length) return t.innerHTML = '<tr><td colspan="9" class="text-center">Kosong</td></tr>';
+    if(!dbData.peminjamanLab.length) return t.innerHTML = '<tr><td colspan="8" class="text-center">Kosong</td></tr>';
     
     t.innerHTML = dbData.peminjamanLab.map(i => {
       let c = i.Status==='Disetujui'?'bg-success':i.Status==='Ditolak'?'bg-danger':'bg-warning text-dark';
@@ -1081,22 +1074,7 @@
         else if(i.Status==='Selesai' || i.Status==='Ditolak') act = `<button class="btn btn-sm btn-outline-danger" onclick="handleArchiveLab('${i.IdPinjamLab}')">Hapus Arsip</button>`;
       }
 
-      let targetWa = '';
-      const uLab1 = dbData.users.find(u => u.Username === 'routing_lab1');
-      const uLab2 = dbData.users.find(u => u.Username === 'routing_lab2');
-
-      if(i.KodeLab === 'LAB-1') targetWa = (uLab1 && uLab1.WhatsApp) ? uLab1.WhatsApp : '';
-      else if(i.KodeLab === 'LAB-2') targetWa = (uLab2 && uLab2.WhatsApp) ? uLab2.WhatsApp : '';
-
-      let waBtn = '-';
-      if(targetWa) {
-        let msg = encodeURIComponent(`Assalamu'alaikum Admin ${i.NamaLab}, saya ${i.PenanggungJawab} ingin konfirmasi booking lab untuk kegiatan "${i.Kegiatan}" pada tanggal ${i.TanggalGuna} (${i.JamMulai} - ${i.JamSelesai}). ID Booking: ${i.IdPinjamLab}`);
-        waBtn = `<a href="https://wa.me/${targetWa}?text=${msg}" target="_blank" class="btn btn-sm btn-success"><i class="fa-brands fa-whatsapp"></i> Chat WA Admin</a>`;
-      } else {
-        waBtn = `<small class="text-muted">No WA belum diatur</small>`;
-      }
-
-      return `<tr><td>${i.IdPinjamLab}</td><td>${i.NamaLab}</td><td>${i.Kegiatan}</td><td>${i.PenanggungJawab}</td><td>${i.TanggalGuna}</td><td>${i.JamMulai}-${i.JamSelesai}</td><td><span class="badge ${c}">${i.Status}</span></td><td class="text-center">${waBtn}</td><td class="text-center">${act}</td></tr>`;
+      return `<tr><td>${i.IdPinjamLab}</td><td>${i.NamaLab}</td><td>${i.Kegiatan}</td><td>${i.PenanggungJawab}</td><td>${i.TanggalGuna}</td><td>${i.JamMulai}-${i.JamSelesai}</td><td><span class="badge ${c}">${i.Status}</span></td><td class="text-center">${act}</td></tr>`;
     }).join('');
   }
 
@@ -1209,7 +1187,21 @@
       }
 
       if (targetWa) {
-        let msg = encodeURIComponent(`Assalamu'alaikum Admin ${namaLabVal}, saya ${pjVal} ingin konfirmasi pengajuan booking lab untuk kegiatan "${kegiatanVal}" pada tanggal ${tglGuna} (${jamMulai} - ${jamSelesai}). ID Booking: ${idBooking}. Mohon persetujuannya, terima kasih.`);
+        const tglParts = tglGuna.split('-'); 
+        const tglFormat = `${tglParts[2]}/${tglParts[1]}/${tglParts[0]}`;
+
+        const msgRaw = `🔔 PEMBERITAHUAN BOOKING LAB
+Assalamu'alaikum, mhon untuk dikonfirmasi,
+ID Booking: ${idBooking}
+Ruang: ${namaLabVal}
+Kegiatan: ${kegiatanVal}
+Penanggung Jawab: ${pjVal}
+Tanggal: ${tglFormat}
+Jam: ${jamMulai} - ${jamSelesai}
+Status: Pending
+Syukron Jazakllah`;
+        
+        let msg = encodeURIComponent(msgRaw);
         
         Swal.fire({
           icon: 'success',
