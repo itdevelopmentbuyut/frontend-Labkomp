@@ -77,7 +77,14 @@
     .login-wrapper::before { content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%; background: rgba(37, 99, 235, 0.15); top: -100px; right: -100px; filter: blur(50px); }
     .login-wrapper::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(14, 165, 233, 0.15); bottom: -80px; left: -80px; filter: blur(50px); }
     .login-card { width: 100%; max-width: 440px; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; z-index: 10; overflow: hidden; }
-    .login-brand-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
+    
+    /* Ukuran Logo Login Responsif (Lebih Besar & Menyesuaikan HP) */
+    .login-brand-icon { width: 88px; height: 88px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3); }
+    .login-brand-icon img { width: 100% !important; height: 100% !important; object-fit: contain; border-radius: 20px; }
+    @media (max-width: 480px) {
+      .login-brand-icon { width: 72px; height: 72px; border-radius: 16px; }
+      .login-brand-icon img { border-radius: 16px; }
+    }
     
     /* =====================================================
        CSS PRINT A4 - STABIL & RAPI MULAI DARI ATAS
@@ -176,7 +183,7 @@
       <div class="login-card p-4 p-md-5">
         <div class="text-center mb-4">
           <div class="login-brand-icon mb-3" id="loginBrandIconContainer">
-            <i class="fa-solid fa-laptop-code fs-2" id="loginBrandDefaultIcon"></i>
+            <i class="fa-solid fa-laptop-code fs-1" id="loginBrandDefaultIcon"></i>
           </div>
           <h3 class="fw-bold text-dark mb-1">E-Labkomp</h3>
           <p class="text-muted small">Sistem Informasi Inventaris & Peminjaman Lab</p>
@@ -649,7 +656,7 @@
       if (data && data.Value && data.Value !== 'EMPTY' && data.Value.trim() !== '') {
         const iconContainer = document.getElementById('loginBrandIconContainer');
         if (iconContainer) {
-          iconContainer.innerHTML = `<img src="${data.Value}" alt="Logo" style="width: 56px; height: 56px; object-fit: contain; border-radius: 12px;">`;
+          iconContainer.innerHTML = `<img src="${data.Value}" alt="Logo">`;
           iconContainer.style.background = 'transparent';
           iconContainer.style.boxShadow = 'none';
         }
